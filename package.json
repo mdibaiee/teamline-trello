@@ -10,5 +10,10 @@
     "bolt"
   ],
   "author": "Mahdi Dibaiee <mdibaiee@aol.com> (http://dibaiee.ir/)",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "babel-core": "6.0.16",
+    "babel-preset-es2015": "6.0.15",
+    "babel-preset-stage-2": "6.0.15"
+  }
 }
