@@ -1,0 +1,14 @@
+{
+  "name": "bolt-template",
+  "version": "1.0.0",
+  "description": "Template for bolt plugins",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bolt"
+  ],
+  "author": "Mahdi Dibaiee <mdibaiee@aol.com> (http://dibaiee.ir/)",
+  "license": "MIT"
+}
