@@ -1,16 +1,16 @@
 {
   "name": "bolt-template",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Template for bolt plugins",
   "main": "build/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-	"config": {
-		"ghooks": {
-			"pre-commit": "grunt"
-		}
-	},
+  "config": {
+    "ghooks": {
+      "pre-commit": "grunt"
+     }
+  },
   "keywords": [
     "bolt"
   ],
