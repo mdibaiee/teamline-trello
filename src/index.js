@@ -1,11 +1,41 @@
-export default bot => {
-  // read configurations from bot.config, users set bot.config in `config.js`
-  let config = bot.config.template;
+import Trello from 'trello';
 
-  // Add a help record for your plugin's commands
-	// When the user issues `help`, there will be a list of command names along
-	// with their short description (second argument).
-	// If the user issues `help` with a command name, like `help example`,
-	// the long description (last argument) will be shown.
-  bot.help('example', 'shows an example', 'example <name>');
-}
+export default async (db, config = {}) => {
+  const APP = config.sync.trello.app;
+  const USER = config.sync.trello.user;
+
+  if (!APP || !USER) {
+    throw new Error('Please set sync.trello.app and user.');
+  }
+
+  const trello = new Trello(APP, USER);
+
+  const boards = await trello.getBoards('me');
+  const { Company, Team, Employee, Project } = db.sequelize.models; // eslint-disable-line
+
+  for (const board of boards) {
+    Team.findOrCreate({
+      where: {
+        name: board.name
+      }
+    });
+
+    try {
+      const lists = await trello.getListsOnBoard(board.id);
+
+      await* lists.map(async list => { // eslint-disable-line
+        const cards = await trello.getCardsOnList(list.id);
+
+        cards.forEach(async card => {
+          Project.findOrCreate({
+            where: {
+              name: card.name
+            }
+          });
+        });
+      });
+    } catch (e) {
+      console.error('E', e);
+    }
+  }
+};
