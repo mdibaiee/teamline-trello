@@ -1,6 +1,6 @@
 {
   "name": "teamline-trello",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Sync Teamline with your Trello boards",
   "main": "build/index.js",
   "scripts": {
@@ -15,6 +15,9 @@
   "keywords": [
     "bolt"
   ],
+  "files": [
+    "build"
+  ],
   "author": "Mahdi Dibaiee <mdibaiee@aol.com> (http://dibaiee.ir/)",
   "license": "MIT",
   "devDependencies": {
@@ -28,6 +31,7 @@
     "grunt-contrib-watch": "0.6.1"
   },
   "dependencies": {
-    "trello": "0.5.1"
+    "node-trello": "1.1.2",
+    "pify": "2.3.0"
   }
 }
