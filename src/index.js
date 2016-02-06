@@ -5,6 +5,9 @@ import debounce from './debounce';
 import sync from './sync';
 
 const DEBOUNCE_INTERVAL = 10000;
+const DEFAULTS = {
+  lists: ['todo', 'doing', 'done', 'homeless']
+};
 export default async (db, config = {}) => {
   // try {
   const { sequelize, Sequelize } = db;
@@ -19,9 +22,9 @@ export default async (db, config = {}) => {
   const trello = new Trello(APP, USER);
   const get = promisify(trello.get.bind(trello));
 
-  config.trello = {
+  config.trello = Object.assign({
     user: await get('/1/members/me')
-  };
+  }, DEFAULTS);
 
   const { Company, Team, Employee, Project } = db.sequelize.models; // eslint-disable-line
 
@@ -36,7 +39,11 @@ export default async (db, config = {}) => {
 
   commentActions(trello, db, config);
   let syncing = true;
-  sync(trello, db, config).then(() => syncing = false);
+  sync(trello, db, config).then(() => {
+    setTimeout(() => {
+      syncing = false;
+    }, DEBOUNCE_INTERVAL);
+  });
 
   ['afterCreate', 'afterDestroy', 'afterUpdate',
   'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {

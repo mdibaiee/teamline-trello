@@ -3,9 +3,8 @@ import promisify from 'pify';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                 'August', 'September', 'October', 'November', 'December'];
 export default async (trello, db, config) => {
-  console.log('comment actions');
   const { sequelize } = db;
-  const { Trello, Action, Project, Employee } = sequelize.models;
+  const { Trello, Action, Project, Employee, Role } = sequelize.models;
 
   const get = promisify(trello.get.bind(trello));
   const post = promisify(trello.post.bind(trello));
@@ -13,14 +12,17 @@ export default async (trello, db, config) => {
 
   const cards = await Trello.findAll({
     where: {
-      type: 'project'
+      type: {
+        $in: ['project', 'role']
+      }
     }
   });
 
   cards.forEach(async card => {
+    const model = card.type === 'project' ? Project : Role;
     const actions = await Action.findAll({
       include: [{
-        model: Project,
+        model,
         where: {
           id: card.modelId
         }
@@ -46,7 +48,6 @@ export default async (trello, db, config) => {
       cmt.data.text && cmt.data.text.startsWith('Actions') &&
       d.getMonth() === month && d.getFullYear() === year;
     });
-    // console.log('Comment', comment);
 
     if (!comment) {
       await post(`/1/cards/${card.trelloId}/actions/comments`, { text });
@@ -54,5 +55,4 @@ export default async (trello, db, config) => {
       await put(`/1/actions/${comment.id}`, { text });
     }
   });
-  console.log('COMMENT ACTIONS COMPLETE!');
 };
