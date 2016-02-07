@@ -114,14 +114,15 @@ export default async (trello, db, config) => {
             }, { hooks: false });
           }
 
+          project.setTeam(team);
+          team.addProject(project);
+
           card.idMembers.forEach(async id => {
             const user = boardMembers.find(a => a.id === id);
             const emp = user.employee;
 
             emp.addProject(project);
             project.addEmployee(emp);
-            team.addProject(project);
-            project.setTeam(team);
           });
         });
         await wait(ONE);
