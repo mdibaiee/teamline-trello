@@ -4,11 +4,11 @@ import commentActions from './comment-actions';
 import debounce from './debounce';
 import sync from './sync';
 
-const DEBOUNCE_INTERVAL = 10000;
+const DEBOUNCE_INTERVAL = 5000;
 const DEFAULTS = {
   lists: ['todo', 'doing', 'done', 'homeless']
 };
-export default async (db, config = {}) => {
+export default async (server, db, config = {}) => {
   // try {
   const { sequelize, Sequelize } = db;
 
@@ -21,6 +21,7 @@ export default async (db, config = {}) => {
 
   const trello = new Trello(APP, USER);
   const get = promisify(trello.get.bind(trello));
+  const post = promisify(trello.post.bind(trello));
 
   config.trello = Object.assign({
     user: await get('/1/members/me')
@@ -45,12 +46,32 @@ export default async (db, config = {}) => {
     }, DEBOUNCE_INTERVAL);
   });
 
+  const resync = () => {
+    if (syncing) return;
+    commentActions(trello, db, config);
+    sync(trello, db, config);
+  };
+
   ['afterCreate', 'afterDestroy', 'afterUpdate',
   'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {
-    sequelize.addHook(ev, debounce(() => {
-      if (syncing) return;
-      commentActions(trello, db, config);
-      sync(trello, db, config);
-    }, DEBOUNCE_INTERVAL));
+    sequelize.addHook(ev, debounce(resync, DEBOUNCE_INTERVAL));
+  });
+
+  const callbackURL = '/trello-webhook';
+  server.route({
+    method: 'GET',
+    path: callbackURL,
+    handler(request, reply) {
+      console.log('syncing trello changes');
+      resync();
+      reply();
+    }
+  });
+
+  const idModel = config.trello.user.idOrganizations[0];
+
+  await post('/1/webhooks/', {
+    callbackURL: server.info.uri + callbackURL,
+    idModel
   });
 };
