@@ -52,6 +52,8 @@ export default async (server, db, config = {}) => {
     sync(trello, db, config);
   };
 
+  server.on('refresh', () => debounce(resync, DEBOUNCE_INTERVAL));
+
   ['afterCreate', 'afterDestroy', 'afterUpdate',
   'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {
     sequelize.addHook(ev, debounce(resync, DEBOUNCE_INTERVAL));
