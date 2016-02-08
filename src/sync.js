@@ -129,7 +129,7 @@ export default async (trello, db, config) => {
       }
 
       // homeless projects
-      const projects = await Project.scope('undone').findAll({
+      const projects = await Project.findAll({
         include: [{
           model: Team,
           where: {
@@ -147,7 +147,10 @@ export default async (trello, db, config) => {
 
         if (hasTrello) continue;
 
-        const list = lists.find(a => a.name.toLowerCase().includes('homeless'));
+        const list = lists.find(a => a.name.toLowerCase().includes('homeless')) ||
+                    await post(`/1/boards/${board.id}/lists`, {
+                      name: 'Homeless Projects'
+                    });
 
         const [employee] = await project.getEmployees();
         const member = boardMembers.find(mem => mem.employee.id === employee.id);
