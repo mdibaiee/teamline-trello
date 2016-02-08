@@ -1,7 +1,6 @@
 import Trello from 'node-trello';
-import promisify from 'pify';
 import commentActions from './comment-actions';
-import debounce from './debounce';
+import { debounce, request } from './utils';
 import sync from './sync';
 
 const DEBOUNCE_INTERVAL = 5000;
@@ -20,8 +19,7 @@ export default async (server, db, config = {}) => {
   }
 
   const trello = new Trello(APP, USER);
-  const get = promisify(trello.get.bind(trello));
-  const post = promisify(trello.post.bind(trello));
+  const { get, post } = request(trello);
 
   config.trello = Object.assign({
     user: await get('/1/members/me')
@@ -63,7 +61,7 @@ export default async (server, db, config = {}) => {
   server.route({
     method: 'GET',
     path: callbackURL,
-    handler(request, reply) {
+    handler(req, reply) {
       console.log('syncing trello changes');
       resync();
       reply();

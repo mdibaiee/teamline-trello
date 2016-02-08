@@ -1,4 +1,4 @@
-import promisify from 'pify';
+import { request } from './utils';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                 'August', 'September', 'October', 'November', 'December'];
@@ -6,9 +6,7 @@ export default async (trello, db, config) => {
   const { sequelize } = db;
   const { Trello, Action, Project, Employee, Role } = sequelize.models;
 
-  const get = promisify(trello.get.bind(trello));
-  const post = promisify(trello.post.bind(trello));
-  const put = promisify(trello.put.bind(trello));
+  const { get, post, put } = request(trello);
 
   const cards = await Trello.findAll({
     where: {

@@ -1,17 +1,13 @@
-import promisify from 'pify';
-import wait from './wait';
+import { request } from './utils';
 
 const notClosed = a => !a.closed;
-const ONE = 1000;
 export default async (trello, db, config) => {
   const { sequelize } = db;
   const { Trello, Project, Employee, Team, Role } = sequelize.models;
 
   const related = a => config.trello.lists.some(b => new RegExp(b, 'i').test(a.name));
 
-  const get = promisify(trello.get.bind(trello));
-  const post = promisify(trello.post.bind(trello));
-  // const put = promisify(trello.put.bind(trello));
+  const { get, post } = request(trello);
 
   const boards = (await get('/1/members/me/boards'))
                   .filter(notClosed);
@@ -125,7 +121,6 @@ export default async (trello, db, config) => {
             project.addEmployee(emp);
           });
         });
-        await wait(ONE);
       }
 
       // homeless projects
@@ -166,8 +161,6 @@ export default async (trello, db, config) => {
           type: 'project'
         });
       }
-
-      await wait(ONE);
     } catch (e) {
       console.error('Teamline Trello sync error:', e);
     }
@@ -249,8 +242,6 @@ export default async (trello, db, config) => {
           r.addEmployee(emp);
         });
       });
-
-      await wait(ONE);
     }
   } catch (e) {
     console.error('Teamline Trello sync roles error: ', e);
