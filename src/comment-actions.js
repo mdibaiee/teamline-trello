@@ -8,7 +8,7 @@ export default async (trello, db, config) => {
   const { sequelize } = db;
   const { Trello, Action, Project, Employee, Role } = sequelize.models;
 
-  const { get, post, put } = request(trello);
+  const { get, post, put, del } = request(trello);
 
   const boards = await get('/1/member/me/boards');
 
@@ -17,7 +17,7 @@ export default async (trello, db, config) => {
     cards = cards.concat(await get(`/1/board/${board.id}/cards?actions=commentCard`));
   }
 
-  cards.forEach(async card => {
+  for (const card of cards) {
     const trelloInstance = Trello.findOne({
       where: {
         trelloId: card.id
@@ -31,7 +31,25 @@ export default async (trello, db, config) => {
           id: trelloInstance.modelId
         }
       }, Employee]
-    }) || [];
+    });
+
+    const now = new Date();
+    const [month, year] = [now.getMonth(), now.getFullYear()];
+    const comments = card.actions;
+    const comment = comments.find(cmt => {
+      const d = new Date(cmt.date);
+
+      return cmt.idMemberCreator === config.trello.user.id &&
+      cmt.data.text && cmt.data.text.startsWith('Actions') &&
+      d.getMonth() === month && d.getFullYear() === year;
+    });
+
+    if (!actions.length) {
+      if (comment) {
+        await del(`/1/actions/${comment.id}`);
+      }
+      return;
+    }
 
     const employees = groupBy(actions, action =>
       `${action.Employee.firstname} ${action.Employee.lastname}`
@@ -61,23 +79,12 @@ export default async (trello, db, config) => {
       return `${key}\n${actionList}`;
     });
 
-    const now = new Date();
-    const [month, year] = [now.getMonth(), now.getFullYear()];
     const text = `Actions for ${MONTHS[month]} ${year}\n${list}`;
-
-    const comments = card.actions;
-    const comment = comments.find(cmt => {
-      const d = new Date(cmt.date);
-
-      return cmt.idMemberCreator === config.trello.user.id &&
-      cmt.data.text && cmt.data.text.startsWith('Actions') &&
-      d.getMonth() === month && d.getFullYear() === year;
-    });
 
     if (!comment) {
       await post(`/1/cards/${card.trelloId}/actions/comments`, { text });
     } else {
       await put(`/1/actions/${comment.id}`, { text });
     }
-  });
+  }
 };

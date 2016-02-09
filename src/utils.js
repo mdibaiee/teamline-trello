@@ -26,7 +26,7 @@ export function debounce(func, delay, immediate) {
   };
 }
 
-const WAIT_TIME = 2000;
+const WAIT_TIME = 1000;
 let c = 0;
 export function request(trello) {
   const get = promisify(trello.get.bind(trello));
@@ -62,8 +62,7 @@ export function request(trello) {
   };
 }
 
-let t = 0;
 setInterval(() => {
-  t++;
-  console.log('on average, ', c / t, 'requests per minute');
+  console.log(c, 'requests in last minute');
+  c = 0;
 }, 60 * 1000);
