@@ -48,7 +48,7 @@ export default async (trello, db, config) => {
       if (comment) {
         await del(`/1/actions/${comment.id}`);
       }
-      return;
+      continue;
     }
 
     const employees = groupBy(actions, action =>
