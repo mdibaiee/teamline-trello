@@ -77,7 +77,7 @@ export default async (trello, db, config) => {
         }
 
         return `    · ${day}${postfix} day – ${name}`;
-      });
+      }).join('\n');
 
       return `${key}\n${actionList}`;
     });
