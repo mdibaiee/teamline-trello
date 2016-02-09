@@ -1,4 +1,5 @@
 import { request } from './utils';
+import { groupBy } from 'lodash';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                 'August', 'September', 'October', 'November', 'December'];
@@ -27,10 +28,21 @@ export default async (trello, db, config) => {
       }, Employee]
     }) || [];
 
-    const list = actions.map(action => {
-      const employee = action.Employee;
-      return `@${employee.username} ${employee.firstname} ${employee.lastname} – ${action.name}`;
-    }).join('\n');
+    const employees = groupBy(actions, action =>
+      `${action.Employee.firstname} ${action.Employee.lastname}`
+    );
+    const list = Object.keys(employees).map(key => {
+      const employeeActions = employees[key];
+
+      const actionList = employeeActions.map(action => {
+        const day = new Date(action.date).getDate();
+        const name = action.name;
+
+        return `    · ${day} – ${name}`;
+      });
+
+      return `${key}\n${actionList}`;
+    });
 
     const now = new Date();
     const [month, year] = [now.getMonth(), now.getFullYear()];

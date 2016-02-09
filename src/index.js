@@ -35,20 +35,16 @@ export default async (server, db, config = {}) => {
 
   await db.sequelize.sync();
 
+  let syncing = false;
 
-  commentActions(trello, db, config);
-  let syncing = true;
-  sync(trello, db, config).then(() => {
-    setTimeout(() => {
-      syncing = false;
-    }, DEBOUNCE_INTERVAL);
-  });
-
-  const resync = () => {
+  const resync = async () => {
     if (syncing) return;
-    commentActions(trello, db, config);
-    sync(trello, db, config);
+    await commentActions(trello, db, config);
+    await sync(trello, db, config);
+    syncing = false;
   };
+
+  resync();
 
   server.on('refresh', resync);
 
@@ -62,7 +58,6 @@ export default async (server, db, config = {}) => {
     method: 'GET',
     path: callbackURL,
     handler(req, reply) {
-      console.log('syncing trello changes');
       resync();
       reply();
     }

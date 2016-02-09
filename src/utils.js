@@ -26,12 +26,12 @@ export function debounce(func, delay, immediate) {
   };
 }
 
-const WAIT_TIME = 500;
+const WAIT_TIME = 400;
 export function request(trello) {
   const get = promisify(trello.get.bind(trello));
   const post = promisify(trello.post.bind(trello));
   const put = promisify(trello.put.bind(trello));
-  const del = promisify(trello.delete.bind(trello));
+  const del = promisify(trello.del.bind(trello));
 
   return {
     async get(...args) {
