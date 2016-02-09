@@ -37,8 +37,20 @@ export default async (trello, db, config) => {
       const actionList = employeeActions.map(action => {
         const day = new Date(action.date).getDate();
         const name = action.name;
+        let postfix;
 
-        return `    · ${day} – ${name}`;
+        switch (day) {
+          case 1:
+            postfix = 'st';
+            break;
+          case 2:
+            postfix = 'nd';
+            break;
+          default:
+            postfix = 'th';
+        }
+
+        return `    · ${day}${postfix} day – ${name}`;
       });
 
       return `${key}\n${actionList}`;

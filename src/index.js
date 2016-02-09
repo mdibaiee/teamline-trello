@@ -39,8 +39,12 @@ export default async (server, db, config = {}) => {
 
   const resync = async () => {
     if (syncing) return;
-    await commentActions(trello, db, config);
-    await sync(trello, db, config);
+    try {
+      await commentActions(trello, db, config);
+      await sync(trello, db, config);
+    } catch (e) {
+      console.error('Trello synchronisation error', e, e.stack);
+    }
     syncing = false;
   };
 

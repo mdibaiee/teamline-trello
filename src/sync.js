@@ -178,7 +178,7 @@ export default async (trello, db, config) => {
       if (!t) continue;
 
       const roles = await get(`/1/list/${team.id}/cards`);
-      await* roles.map(async role => { // eslint-disable-line
+      for (const role of roles) {
         let purpose;
         let accountability;
         try {
@@ -221,7 +221,7 @@ export default async (trello, db, config) => {
         r.addTeam(t);
         t.addRole(r);
 
-        await* role.idMembers.map(async memberId => {
+        await* role.idMembers.map(async memberId => { // eslint-disable-line
           const tr = await Trello.findOne({
             where: {
               trelloId: memberId,
@@ -241,7 +241,7 @@ export default async (trello, db, config) => {
           emp.addRole(r);
           r.addEmployee(emp);
         });
-      });
+      }
     }
   } catch (e) {
     console.error('Teamline Trello sync roles error: ', e);
