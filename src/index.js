@@ -50,7 +50,7 @@ export default async (server, db, config = {}) => {
     sync(trello, db, config);
   };
 
-  server.on('refresh', () => debounce(resync, DEBOUNCE_INTERVAL));
+  server.on('refresh', resync);
 
   ['afterCreate', 'afterDestroy', 'afterUpdate',
   'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {
