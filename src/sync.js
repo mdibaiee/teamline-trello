@@ -47,7 +47,10 @@ export default async (trello, db, config) => {
           )
         )
       });
-      if (!emp) continue;
+      if (!emp) {
+        member.employee = {};
+        continue;
+      }
 
       member.employee = emp;
 
