@@ -4,26 +4,31 @@ import { groupBy } from 'lodash';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                 'August', 'September', 'October', 'November', 'December'];
 export default async (trello, db, config) => {
+  console.log('comment-actions');
   const { sequelize } = db;
   const { Trello, Action, Project, Employee, Role } = sequelize.models;
 
   const { get, post, put } = request(trello);
 
-  const cards = await Trello.findAll({
-    where: {
-      type: {
-        $in: ['project', 'role']
-      }
-    }
-  });
+  const boards = await get('/1/member/me/boards');
+
+  let cards = [];
+  for (const board of boards) {
+    cards = cards.concat(await get(`/1/board/${board.id}/cards?actions=commentCard`));
+  }
 
   cards.forEach(async card => {
-    const model = card.type === 'project' ? Project : Role;
+    const trelloInstance = Trello.findOne({
+      where: {
+        trelloId: card.id
+      }
+    });
+    const model = trelloInstance.type === 'project' ? Project : Role;
     const actions = await Action.findAll({
       include: [{
         model,
         where: {
-          id: card.modelId
+          id: trelloInstance.modelId
         }
       }, Employee]
     }) || [];
@@ -60,7 +65,7 @@ export default async (trello, db, config) => {
     const [month, year] = [now.getMonth(), now.getFullYear()];
     const text = `Actions for ${MONTHS[month]} ${year}\n${list}`;
 
-    const comments = await get(`/1/cards/${card.trelloId}/actions`);
+    const comments = card.actions;
     const comment = comments.find(cmt => {
       const d = new Date(cmt.date);
 

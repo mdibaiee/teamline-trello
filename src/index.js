@@ -1,9 +1,8 @@
 import Trello from 'node-trello';
 import commentActions from './comment-actions';
-import { debounce, request } from './utils';
+import { request } from './utils';
 import sync from './sync';
 
-const DEBOUNCE_INTERVAL = 5000;
 const DEFAULTS = {
   lists: ['todo', 'doing', 'done', 'homeless']
 };
@@ -39,9 +38,10 @@ export default async (server, db, config = {}) => {
 
   const resync = async () => {
     if (syncing) return;
+    syncing = true;
     try {
-      await commentActions(trello, db, config);
       await sync(trello, db, config);
+      await commentActions(trello, db, config);
     } catch (e) {
       console.error('Trello synchronisation error', e, e.stack);
     }
@@ -54,7 +54,7 @@ export default async (server, db, config = {}) => {
 
   ['afterCreate', 'afterDestroy', 'afterUpdate',
   'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {
-    sequelize.addHook(ev, debounce(resync, DEBOUNCE_INTERVAL));
+    sequelize.addHook(ev, resync);
   });
 
   const callbackURL = '/trello-webhook';

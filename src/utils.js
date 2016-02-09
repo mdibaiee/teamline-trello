@@ -27,6 +27,7 @@ export function debounce(func, delay, immediate) {
 }
 
 const WAIT_TIME = 2000;
+let c = 0;
 export function request(trello) {
   const get = promisify(trello.get.bind(trello));
   const post = promisify(trello.post.bind(trello));
@@ -35,24 +36,34 @@ export function request(trello) {
 
   return {
     async get(...args) {
+      c++;
       const result = await get(...args);
       await wait(WAIT_TIME);
       return result;
     },
     async post(...args) {
+      c++;
       const result = await post(...args);
       await wait(WAIT_TIME);
       return result;
     },
     async put(...args) {
+      c++;
       const result = await put(...args);
       await wait(WAIT_TIME);
       return result;
     },
     async del(...args) {
+      c++;
       const result = await del(...args);
       await wait(WAIT_TIME);
       return result;
     }
   };
 }
+
+let t = 0;
+setInterval(() => {
+  t++;
+  console.log('on average, ', c / t, 'requests per minute');
+}, 60 * 1000);
