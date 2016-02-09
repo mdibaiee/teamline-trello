@@ -154,7 +154,9 @@ export default async (trello, db, config) => {
                     });
 
         const [employee] = await project.getEmployees();
+        if (!employee) continue;
         const member = boardMembers.find(mem => mem.employee.id === employee.id);
+        if (!member) continue;
 
         const newCard = await post(`/1/lists/${list.id}/cards`, {
           name: project.name,
