@@ -23,6 +23,9 @@ export default async (trello, db, config) => {
         trelloId: card.id
       }
     });
+
+    if (!trelloInstance) continue;
+
     const model = trelloInstance.type === 'project' ? Project : Role;
     const actions = await Action.findAll({
       include: [{
