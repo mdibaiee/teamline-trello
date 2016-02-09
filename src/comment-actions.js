@@ -18,7 +18,7 @@ export default async (trello, db, config) => {
   }
 
   for (const card of cards) {
-    const trelloInstance = Trello.findOne({
+    const trelloInstance = await Trello.findOne({
       where: {
         trelloId: card.id
       }
