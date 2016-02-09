@@ -25,9 +25,7 @@ export default async (trello, db, config) => {
           id: card.modelId
         }
       }, Employee]
-    });
-
-    if (!actions.length) return;
+    }) || [];
 
     const list = actions.map(action => {
       const employee = action.Employee;

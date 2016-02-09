@@ -7,7 +7,7 @@ export default async (trello, db, config) => {
 
   const related = a => config.trello.lists.some(b => new RegExp(b, 'i').test(a.name));
 
-  const { get, post } = request(trello);
+  const { get, post, del } = request(trello);
 
   const boards = (await get('/1/members/me/boards'))
                   .filter(notClosed);
@@ -245,5 +245,46 @@ export default async (trello, db, config) => {
     }
   } catch (e) {
     console.error('Teamline Trello sync roles error: ', e);
+  }
+
+  try {
+    const trellos = await Trello.findAll();
+
+    for (const t of trellos) {
+      let model;
+      let trelloModel;
+
+      switch (t.type) {
+        case 'project':
+          model = Project;
+          trelloModel = 'cards';
+          break;
+        case 'role':
+          model = Role;
+          trelloModel = 'cards';
+          break;
+        // case 'employee':
+        //   model = Employee;
+        //   trelloModel =
+        //   break;
+        // case 'team':
+        //   model = Team;
+        //   trelloModel = 'boards';
+        //   break;
+        default: continue;
+      }
+
+      const instance = model.findOne({
+        where: {
+          id: t.modelId
+        }
+      });
+
+      if (!instance) {
+        await del(`/1/${trelloModel}/${t.trelloId}`);
+      }
+    }
+  } catch (e) {
+    console.error('Teamline Trello sync removed error:', e);
   }
 };
