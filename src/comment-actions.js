@@ -85,7 +85,7 @@ export default async (trello, db, config) => {
     const text = `Actions for ${MONTHS[month]} ${year}\n${list}`;
 
     if (!comment) {
-      await post(`/1/cards/${card.trelloId}/actions/comments`, { text });
+      await post(`/1/cards/${card.id}/actions/comments`, { text });
     } else {
       await put(`/1/actions/${comment.id}`, { text });
     }
