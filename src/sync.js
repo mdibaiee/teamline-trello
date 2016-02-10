@@ -289,7 +289,11 @@ export default async (trello, db, config) => {
       });
 
       if (!instance) {
-        await del(`/1/${trelloModel}/${t.trelloId}`);
+        try {
+          await del(`/1/${trelloModel}/${t.trelloId}`);
+        } catch (e) {
+          //
+        }
         continue;
       }
 
