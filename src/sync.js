@@ -282,7 +282,7 @@ export default async (trello, db, config) => {
         default: continue;
       }
 
-      const instance = model.findOne({
+      const instance = await model.findOne({
         where: {
           id: t.modelId
         }
