@@ -17,4 +17,4 @@ Configuration
 ```
 
 You can get your `app` key from [here](https://trello.com/app-key)
-and your `user` key from [here](https://trello.com/1/connect?key=d227fa46ab227ca5bd64bf1c2772db88&name=Teamline&response_type=token&scope=read,write).
+and your `user` key from [here](https://trello.com/1/connect?key=<YOUR_KEY>&name=Teamline&response_type=token&scope=read,write).

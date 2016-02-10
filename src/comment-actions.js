@@ -84,6 +84,8 @@ export default async (trello, db, config) => {
 
     const text = `Actions for ${MONTHS[month]} ${year}\n${list}`;
 
+    if (text === comment.data.text) continue;
+
     if (!comment) {
       await post(`/1/cards/${card.id}/actions/comments`, { text });
     } else {
