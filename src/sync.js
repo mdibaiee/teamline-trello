@@ -293,14 +293,14 @@ export default async (trello, db, config) => {
         continue;
       }
 
-      const trelloInstance = await request('get', `${trelloModel}/${t.trelloId}`);
+      const trelloInstance = await get(`/1/${trelloModel}/${t.trelloId}`);
       if (!trelloInstance) {
         await instance.destroy();
         await t.destroy();
         continue;
       }
       if (trelloInstance.closed) {
-        instance.update({
+        await instance.update({
           state: 'closed'
         });
       }
