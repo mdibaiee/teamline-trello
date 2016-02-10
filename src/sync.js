@@ -296,7 +296,7 @@ export default async (trello, db, config) => {
       const trelloInstance = await request('get', `${trelloModel}/${t.trelloId}`);
       if (!trelloInstance) {
         await instance.destroy();
-        await trelloInstance.destroy();
+        await t.destroy();
         continue;
       }
       if (trelloInstance.closed) {
