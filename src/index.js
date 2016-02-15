@@ -57,6 +57,9 @@ export default async (server, db, config = {}) => {
     sequelize.addHook(ev, resync);
   });
 
+  const INTERVAL = 10000;
+  setInterval(resync, INTERVAL);
+
   const callbackURL = '/trello-webhook';
   server.route({
     method: 'GET',
