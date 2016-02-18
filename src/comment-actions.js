@@ -80,7 +80,7 @@ export default async (trello, db, config) => {
       }).join('\n');
 
       return `${key}\n${actionList}`;
-    });
+    }).join('\n\n');
 
     const text = `Actions for ${MONTHS[month]} ${year}\n${list}`;
 
