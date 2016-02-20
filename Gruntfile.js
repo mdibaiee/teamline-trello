@@ -13,7 +13,7 @@ module.exports = function(grunt) {
     watch: {
       scripts: {
         files: ['src/**/*.js'],
-        tasks: ['babel']
+        tasks: ['clean', 'babel']
       }
     }
   });

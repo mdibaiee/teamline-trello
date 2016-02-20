@@ -118,6 +118,7 @@ export default async (trello, db, config) => {
           project.setTeam(team);
           team.addProject(project);
 
+          project.setEmployees([]);
           card.idMembers.forEach(async id => {
             const user = boardMembers.find(a => a.id === id);
             const emp = user.employee;
