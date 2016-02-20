@@ -115,17 +115,17 @@ export default async (trello, db, config) => {
             }, { hooks: false });
           }
 
-          project.setTeam(team);
-          team.addProject(project);
+          await project.setTeam(team);
+          await team.addProject(project);
 
-          project.setEmployees([]);
-          card.idMembers.forEach(async id => {
+          await project.setEmployees([]);
+          for (const id of card.idMembers) {
             const user = boardMembers.find(a => a.id === id);
             const emp = user.employee;
 
-            emp.addProject(project);
-            project.addEmployee(emp);
-          });
+            await emp.addProject(project);
+            await project.addEmployee(emp);
+          }
         });
       }
 
@@ -161,7 +161,8 @@ export default async (trello, db, config) => {
 
         const newCard = await post(`/1/lists/${list.id}/cards`, {
           name: project.name,
-          idMembers: [member.id]
+          idMembers: [member.id],
+          state: 'todo'
         });
 
         await Trello.create({
