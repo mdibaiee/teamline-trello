@@ -179,13 +179,11 @@ export default async (trello, db, config) => {
   try {
     const teams = await get(`/1/board/${roleBoard.id}/lists?cards=all`);
     for (const team of teams) {
-      const t = await Team.findOne({
+      const [t] = await Team.findOrCreate({
         where: {
           name: team.name
         }
       });
-
-      if (!t) continue;
 
       const roles = team.cards;
       for (const role of roles) {
