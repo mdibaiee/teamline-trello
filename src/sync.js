@@ -229,6 +229,7 @@ export default async (trello, db, config) => {
         r.addTeam(t);
         t.addRole(r);
 
+        const roleMembers = await r.getEmployees();
         await* role.idMembers.map(async memberId => { // eslint-disable-line
           const tr = await Trello.findOne({
             where: {
@@ -248,7 +249,10 @@ export default async (trello, db, config) => {
 
           emp.addRole(r);
           r.addEmployee(emp);
+          roleMembers.find(e => e.id === emp.id)._member = true;
         });
+
+        roleMembers.filter(e => !e._member).forEach(emp => r.removeEmployee(emp));
       }
     }
   } catch (e) {
