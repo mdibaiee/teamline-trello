@@ -16,20 +16,41 @@ export default async (trello, db, config) => {
   const teamBoards = boards.filter(b => !b.name.toLowerCase().includes('roles'));
   const roleBoard = boards.find(b => b.name.toLowerCase().includes('roles'));
   for (const board of teamBoards) {
-    const [team] = await Team.findOrCreate({
+    const trelloBoard = await Trello.findOne({
       where: {
-        name: board.name
+        trelloId: board.id,
+        type: 'team'
       }
     });
 
-    Trello.findOrCreate({
-      where: {
+    let team;
+    if (trelloBoard) {
+      team = await Team.findOne({
+        where: {
+          id: trelloBoard.modelId
+        }
+      });
+
+      if (!team) {
+        await trelloBoard.destroy();
+        continue;
+      }
+
+      await team.update({
+        name: board.name
+      });
+    } else {
+      team = await Team.create({
+        name: board.name
+      });
+
+      Trello.create({
         trelloId: board.id,
         modelId: team.id,
-        type: 'team'
-      },
-      hooks: false
-    });
+        type: 'team',
+        hooks: false
+      });
+    }
 
     const boardMembers = await get(`/1/boards/${board.id}/members`);
 
