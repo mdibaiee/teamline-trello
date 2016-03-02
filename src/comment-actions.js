@@ -26,8 +26,19 @@ export default async (trello, db, config) => {
 
     if (!trelloInstance) continue;
 
+    const thisMonth = new Date();
+    thisMonth.setDate(1);
+    thisMonth.setHours(0);
+    thisMonth.setMinutes(0);
+    thisMonth.setSeconds(0);
+
     const model = trelloInstance.type === 'project' ? Project : Role;
     const actions = await Action.findAll({
+      where: {
+        date: {
+          $gte: thisMonth.toISOString()
+        }
+      },
       include: [{
         model,
         where: {
