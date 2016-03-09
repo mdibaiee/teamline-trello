@@ -54,6 +54,8 @@ export default async (trello, db, config) => {
 
     const boardMembers = await get(`/1/boards/${board.id}/members`);
 
+    team.setManagers([]);
+
     for (const member of boardMembers) {
       const emp = await Employee.findOne({
         where: sequelize.or(
@@ -87,8 +89,9 @@ export default async (trello, db, config) => {
       team.addEmployee(emp);
       emp.addTeam(team);
 
-      if (member.memberType === 'admin') {
-        team.setManager(emp);
+      const type = board.memberships.find(a => a.idMember === member.id).memberType;
+      if (type === 'admin') {
+        team.addManager(emp);
       }
     }
 
