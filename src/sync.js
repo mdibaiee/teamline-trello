@@ -86,6 +86,10 @@ export default async (trello, db, config) => {
 
       team.addEmployee(emp);
       emp.addTeam(team);
+
+      if (member.memberType === 'admin') {
+        team.setManager(emp);
+      }
     }
 
     try {
