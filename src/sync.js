@@ -85,7 +85,7 @@ export default async (trello, db, config) => {
         )
       });
       if (!emp) {
-        member.employee = {};
+        member.employee = null;
         continue;
       }
 
@@ -131,6 +131,7 @@ export default async (trello, db, config) => {
             [project] = await Project.findOrCreate({
               where: {
                 name: card.name,
+                description: card.desc,
                 state
               },
               hooks: false
@@ -153,6 +154,7 @@ export default async (trello, db, config) => {
 
             await project.update({
               name: card.name,
+              description: card.desc,
               state
             }, { hooks: false });
           }
@@ -164,6 +166,7 @@ export default async (trello, db, config) => {
           for (const id of card.idMembers) {
             const user = boardMembers.find(a => a.id === id);
             const emp = user.employee;
+            if (!emp) continue;
 
             await emp.addProject(project);
             await project.addEmployee(emp);
@@ -218,89 +221,92 @@ export default async (trello, db, config) => {
     }
   }
 
-  try {
-    const teams = await get(`/1/board/${roleBoard.id}/lists?cards=all`);
-    for (const team of teams) {
-      const t = await Team.findOne({
-        where: {
-          name: team.name
-        }
-      });
-
-      if (!t) continue;
-
-      const roles = team.cards;
-      for (const role of roles) {
-        let purpose;
-        let accountability;
-        try {
-          purpose = /\*\*purpose\*\*([^*]*)/gi.exec(role.desc)[1];
-          accountability = /\*\*accountability\*\*([^*]*)/gi.exec(role.desc)[1];
-        } catch (e) {
-          //
-        }
-
-        const trelloInstance = await Trello.findOne({
+  if (roleBoard) {
+    try {
+      const teams = await get(`/1/board/${roleBoard.id}/lists?cards=all`);
+      for (const team of teams) {
+        const t = await Team.findOne({
           where: {
-            trelloId: role.id,
-            type: 'role'
+            name: team.name
           }
         });
 
-        let r;
-        if (trelloInstance) {
-          r = await Role.findOne({
+        if (!t) continue;
+
+        const roles = team.cards;
+        for (const role of roles) {
+          let purpose;
+          let accountability;
+          try {
+            purpose = /\*\*purpose\*\*([^*]*)/gi.exec(role.desc)[1];
+            accountability = /\*\*accountability\*\*([^*]*)/gi.exec(role.desc)[1];
+          } catch (e) {
+            //
+          }
+
+          const trelloInstance = await Trello.findOne({
             where: {
-              id: trelloInstance.modelId
+              trelloId: role.id,
+              type: 'role'
             }
           });
-        } else {
-          r = await Role.create({
-            name: role.name
+
+          let r;
+          if (trelloInstance) {
+            r = await Role.findOne({
+              where: {
+                id: trelloInstance.modelId
+              }
+            });
+          } else {
+            r = await Role.create({
+              name: role.name
+            });
+
+            await Trello.create({
+              modelId: r.id,
+              trelloId: role.id,
+              type: 'role'
+            });
+          }
+
+          await r.update({
+            purpose, accountability, name: role.name
           });
 
-          await Trello.create({
-            modelId: r.id,
-            trelloId: role.id,
-            type: 'role'
+          r.addTeam(t);
+          t.addRole(r);
+
+          const roleMembers = await r.getEmployees();
+          await* role.idMembers.map(async memberId => { // eslint-disable-line
+            const tr = await Trello.findOne({
+              where: {
+                trelloId: memberId,
+                type: 'employee'
+              }
+            });
+
+            if (!tr) return;
+
+            const emp = await Employee.findOne({
+              where: {
+                id: tr.modelId
+              }
+            });
+            if (!emp) return;
+
+            emp.addRole(r);
+            r.addEmployee(emp);
+            const rm = roleMembers.find(e => e.id === emp.id);
+            if (rm) rm._member = true;
           });
+
+          roleMembers.filter(e => !e._member).forEach(emp => r.removeEmployee(emp));
         }
-
-        await r.update({
-          purpose, accountability, name: role.name
-        });
-
-        r.addTeam(t);
-        t.addRole(r);
-
-        const roleMembers = await r.getEmployees();
-        await* role.idMembers.map(async memberId => { // eslint-disable-line
-          const tr = await Trello.findOne({
-            where: {
-              trelloId: memberId,
-              type: 'employee'
-            }
-          });
-
-          if (!tr) return;
-
-          const emp = await Employee.findOne({
-            where: {
-              id: tr.modelId
-            }
-          });
-          if (!emp) return;
-
-          emp.addRole(r);
-          r.addEmployee(emp);
-          roleMembers.find(e => e.id === emp.id)._member = true;
-        });
-
-        roleMembers.filter(e => !e._member).forEach(emp => r.removeEmployee(emp));
       }
+    } catch (e) {
+      console.error('Teamline Trello sync roles error: ', e);
     }
-  } catch (e) {
-    console.error('Teamline Trello sync roles error: ', e);
   }
 
   try {
@@ -337,6 +343,11 @@ export default async (trello, db, config) => {
       });
 
       if (!instance) {
+        try {
+          await t.destroy();
+        } catch (e) {
+          //
+        }
         continue;
       }
 
