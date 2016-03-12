@@ -2,19 +2,33 @@ import { request } from './utils';
 
 const notClosed = a => !a.closed;
 export default async (trello, db, config) => {
-  console.log('sync');
+  console.log('[sync, trello] Syncing...');
   const { sequelize } = db;
   const { Trello, Project, Employee, Team, Role } = sequelize.models;
 
   const related = a => config.trello.lists.some(b => new RegExp(b, 'i').test(a.name));
 
-  const { get, post, del } = request(trello);
+  const { get, post } = request(trello);
 
   const boards = (await get('/1/members/me/boards'))
                   .filter(notClosed);
 
   const teamBoards = boards.filter(b => !b.name.toLowerCase().includes('roles'));
   const roleBoard = boards.find(b => b.name.toLowerCase().includes('roles'));
+  // const teams = await Team.findAll();
+
+  // for (const team of teams) {
+  //   const tb = await Trello.findOne({
+  //     where: {
+  //       modelId: team.id,
+  //       type: 'team'
+  //     }
+  //   });
+  //   if (!tb) {
+  //     await team.destroy();
+  //   }
+  // }
+
   for (const board of teamBoards) {
     const trelloBoard = await Trello.findOne({
       where: {
@@ -207,11 +221,13 @@ export default async (trello, db, config) => {
   try {
     const teams = await get(`/1/board/${roleBoard.id}/lists?cards=all`);
     for (const team of teams) {
-      const [t] = await Team.findOrCreate({
+      const t = await Team.findOne({
         where: {
           name: team.name
         }
       });
+
+      if (!t) continue;
 
       const roles = team.cards;
       for (const role of roles) {
@@ -321,11 +337,6 @@ export default async (trello, db, config) => {
       });
 
       if (!instance) {
-        try {
-          await del(`/1/${trelloModel}/${t.trelloId}`);
-        } catch (e) {
-          //
-        }
         continue;
       }
 

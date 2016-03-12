@@ -7,7 +7,6 @@ const DEFAULTS = {
   lists: ['todo', 'doing', 'done', 'homeless']
 };
 export default async (server, db, config = {}) => {
-  // try {
   const { sequelize, Sequelize } = db;
 
   const APP = config.sync.trello.app;
