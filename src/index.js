@@ -2,6 +2,7 @@ import Trello from 'node-trello';
 import commentActions from './comment-actions';
 import { request } from './utils';
 import sync from './sync';
+import hooks from './hooks';
 
 const DEFAULTS = {
   lists: ['todo', 'doing', 'done', 'homeless']
@@ -17,7 +18,7 @@ export default async (server, db, config = {}) => {
   }
 
   const trello = new Trello(APP, USER);
-  const { get, post } = request(trello);
+  const { get } = request(trello);
 
   config.trello = Object.assign({
     user: await get('/1/members/me')
@@ -47,32 +48,12 @@ export default async (server, db, config = {}) => {
     syncing = false;
   };
 
-  resync();
-
   server.on('refresh', resync);
 
-  ['afterCreate', 'afterDestroy', 'afterUpdate',
-  'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {
-    sequelize.addHook(ev, resync);
-  });
+  resync();
 
-  const INTERVAL = 10000;
-  setInterval(resync, INTERVAL);
+  hooks(trello, server, db, config);
 
-  const callbackURL = '/trello-webhook';
-  server.route({
-    method: 'GET',
-    path: callbackURL,
-    handler(req, reply) {
-      resync();
-      reply();
-    }
-  });
-
-  const idModel = config.trello.user.idOrganizations[0];
-
-  await post('/1/webhooks/', {
-    callbackURL: server.info.uri + callbackURL,
-    idModel
-  });
+  // const INTERVAL = 10000;
+  // setInterval(resync, INTERVAL);
 };

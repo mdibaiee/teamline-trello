@@ -15,19 +15,33 @@ export default async (trello, db, config) => {
 
   const teamBoards = boards.filter(b => !b.name.toLowerCase().includes('roles'));
   const roleBoard = boards.find(b => b.name.toLowerCase().includes('roles'));
-  // const teams = await Team.findAll();
 
-  // for (const team of teams) {
-  //   const tb = await Trello.findOne({
-  //     where: {
-  //       modelId: team.id,
-  //       type: 'team'
-  //     }
-  //   });
-  //   if (!tb) {
-  //     await team.destroy();
-  //   }
-  // }
+  {
+    const teams = await Team.scope('open').findAll();
+    for (const team of teams) {
+      const tb = await Trello.findOne({
+        where: {
+          modelId: team.id,
+          type: 'team'
+        }
+      });
+
+      try {
+        const r = tb ? await get(`/1/boards/${tb.trelloId}`) : null;
+
+        if (!tb || r.closed) {
+          await team.update({
+            closed: true
+          });
+          if (tb) await tb.destroy();
+        }
+      } catch (e) {
+        await team.update({
+          closed: true
+        });
+      }
+    }
+  }
 
   for (const board of teamBoards) {
     const trelloBoard = await Trello.findOne({
@@ -175,7 +189,7 @@ export default async (trello, db, config) => {
       }
 
       // homeless projects
-      const projects = await Project.findAll({
+      const projects = await Project.scope('open').findAll({
         include: [{
           model: Team,
           where: {
@@ -206,8 +220,7 @@ export default async (trello, db, config) => {
 
         const newCard = await post(`/1/lists/${list.id}/cards`, {
           name: project.name,
-          idMembers: [member.id],
-          state: 'todo'
+          idMembers: [member.id]
         });
 
         await Trello.create({

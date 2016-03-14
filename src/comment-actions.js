@@ -1,5 +1,6 @@
 import { request } from './utils';
 import { groupBy } from 'lodash';
+import moment from 'moment';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                 'August', 'September', 'October', 'November', 'December'];
@@ -26,11 +27,7 @@ export default async (trello, db, config) => {
 
     if (!trelloInstance) continue;
 
-    const thisMonth = new Date();
-    thisMonth.setDate(1);
-    thisMonth.setHours(0);
-    thisMonth.setMinutes(0);
-    thisMonth.setSeconds(0);
+    const thisMonth = moment().hours(0).minutes(0).seconds(0).date(1);
 
     const model = trelloInstance.type === 'project' ? Project : Role;
     const actions = await Action.findAll({
@@ -47,15 +44,15 @@ export default async (trello, db, config) => {
       }, Employee]
     });
 
-    const now = new Date();
-    const [month, year] = [now.getMonth(), now.getFullYear()];
+    const now = moment();
+    const [month, year] = [now.month(), now.year()];
     const comments = card.actions;
     const comment = comments.find(cmt => {
-      const d = new Date(cmt.date);
+      const d = moment(new Date(cmt.date));
 
       return cmt.idMemberCreator === config.trello.user.id &&
       cmt.data.text && cmt.data.text.startsWith('Actions') &&
-      d.getMonth() === month && d.getFullYear() === year;
+      d.month() === now.month() && d.year() === now.year();
     });
 
     if (!actions.length) {
