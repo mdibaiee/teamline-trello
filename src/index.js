@@ -41,9 +41,13 @@ export default async (server, db, config = {}) => {
     syncing = true;
     try {
       await sync(trello, db, config);
-      await commentActions(trello, db, config);
     } catch (e) {
       console.error('Trello synchronisation error', e, e.stack);
+    }
+    try {
+      await commentActions(trello, db, config);
+    } catch (e) {
+      console.error('Trello commenting error', e, e.stack);
     }
     syncing = false;
   };
