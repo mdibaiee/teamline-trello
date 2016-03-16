@@ -247,6 +247,26 @@ export default async (trello, server, db, config = {}) => {
 
             break;
           }
+          case 'updateBoard': {
+            const board = await get(`/1/boards/${data.board.id}`);
+            const boardT = await Trello.findOne({
+              where: {
+                trelloId: data.board.id
+              }
+            });
+            if (!boardT) break;
+
+            const team = await Team.findOne({
+              where: {
+                id: boardT.modelId
+              }
+            });
+            if (!team) break;
+
+            team.update({
+              name: board.name
+            });
+          }
         }
 
         return reply().code(200);
