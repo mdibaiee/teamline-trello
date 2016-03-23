@@ -11,8 +11,8 @@ export default async (server, db, config = {}) => {
   try {
     const { sequelize, Sequelize } = db;
 
-    const APP = config.sync.trello.app;
-    const USER = config.sync.trello.user;
+    const APP = config.sync && config.sync.trello ? config.sync.trello.app : null;
+    const USER = config.sync && config.sync.trello ? config.sync.trello.user : null;
 
     if (!APP || !USER) {
       throw new Error('Please set sync.trello.app and user.');
@@ -20,6 +20,9 @@ export default async (server, db, config = {}) => {
 
     const trello = new Trello(APP, USER);
     const { get } = request(trello);
+    if (config._host) {
+      trello.host = config._host;
+    }
 
     config.trello = Object.assign({
       user: await get('/1/members/me')
