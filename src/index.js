@@ -48,22 +48,27 @@ export default async (server, db, config = {}) => {
       } catch (e) {
         console.error('Trello synchronisation error', e, e.stack);
       }
-      try {
-        await commentActions(trello, db, config);
-      } catch (e) {
-        console.error('Trello commenting error', e, e.stack);
+      if (config.comment === false) {
+        try {
+          await commentActions(trello, db, config);
+        } catch (e) {
+          console.error('Trello commenting error', e, e.stack);
+        }
       }
       syncing = false;
     };
 
     server.on('refresh', resync);
 
-    resync();
+    if (config._test) await resync();
+    else resync();
 
     hooks(trello, server, db, config);
 
     // const INTERVAL = 10000;
     // setInterval(resync, INTERVAL);
+
+    return { resync, hooks };
   } catch (e) {
     console.error(e);
   }

@@ -11,7 +11,7 @@ export default async (trello, db, config) => {
 
   const { get, post, put, del } = request(trello);
 
-  const boards = await get('/1/member/me/boards');
+  const boards = await get('/1/members/me/boards');
 
   let cards = [];
   for (const board of boards) {

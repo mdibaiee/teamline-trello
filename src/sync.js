@@ -35,7 +35,7 @@ export default async (trello, db, config) => {
           });
           if (tb) await tb.destroy();
         }
-      } catch (e) {
+      } catch (e) { // request failed, no such board exists on Trello
         await team.update({
           closed: true
         });
