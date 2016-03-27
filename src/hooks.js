@@ -1,16 +1,24 @@
-import { request } from './utils';
+import { request, logger, wait } from './utils';
 import commentActions from './comment-actions';
+import _ from 'lodash';
 
 export default async (trello, server, db, config = {}) => {
+  const { log, error } = logger(config);
   const { get, post } = request(trello);
   const { sequelize } = db;
   const USER = config.sync.trello.user;
 
   const { Role, Team, Employee, Project, Trello } = db.sequelize.models; // eslint-disable-line
 
+  const path = _.get(config, 'sync.trello.webhook.path');
+  if (!path || _.get(config, 'sync.trello.webook') === false) {
+    error('sync.trello.webhook.path not set, disabling webhook updates');
+    return;
+  }
+
   server.route({
     method: 'GET',
-    path: config.webhook.path,
+    path,
     config: {
       auth: false
     },
@@ -21,7 +29,7 @@ export default async (trello, server, db, config = {}) => {
 
   server.route({
     method: 'POST',
-    path: config.webhook.path,
+    path,
     config: {
       auth: false
     },
@@ -29,6 +37,7 @@ export default async (trello, server, db, config = {}) => {
       try {
         const { action } = req.payload;
         const { type, data } = action;
+        log(type, data);
         console.log(type, data);
 
         switch (type) { //eslint-disable-line
@@ -115,6 +124,18 @@ export default async (trello, server, db, config = {}) => {
                 }
               });
 
+              if (data.listBefore && data.listAfter) {
+                const teamName = data.listAfter.name;
+                const team = await Team.findOne({
+                  where: {
+                    name: teamName
+                  }
+                });
+
+                team.addRole(role);
+                role.setTeams([team]);
+              }
+
               await role.update({
                 name: card.name,
                 description: card.desc,
@@ -177,11 +198,11 @@ export default async (trello, server, db, config = {}) => {
               });
 
               if (type === 'addMemberToCard') {
-                emp.addRole(role);
                 role.addEmployee(emp);
+                emp.addRole(role);
               } else {
-                emp.removeRole(role);
                 role.removeEmployee(emp);
+                emp.removeRole(role);
               }
             } else {
               const project = await Project.findOne({
@@ -192,10 +213,14 @@ export default async (trello, server, db, config = {}) => {
 
               if (type === 'addMemberToCard') {
                 project.addEmployee(emp);
+                emp.addProject(project);
               } else {
                 project.removeEmployee(emp);
+                emp.removeProject(project);
               }
             }
+
+            await wait(200); // temporary fix, as `removeProject` doesn't resolve or reject
 
             break;
           }
@@ -245,6 +270,8 @@ export default async (trello, server, db, config = {}) => {
               team.removeManager(employee);
             }
 
+            await wait(200);
+
             break;
           }
           case 'updateBoard': {
@@ -263,7 +290,7 @@ export default async (trello, server, db, config = {}) => {
             });
             if (!team) break;
 
-            team.update({
+            await team.update({
               name: board.name
             });
           }
@@ -271,7 +298,7 @@ export default async (trello, server, db, config = {}) => {
 
         return reply().code(200);
       } catch (e) {
-        console.error(e);
+        error(e);
       }
     }
   });
@@ -290,7 +317,7 @@ export default async (trello, server, db, config = {}) => {
           idModel: board
         });
       } catch (e) {
-        console.log(e);
+        log(e);
       }
     });
   }, WAIT);
@@ -367,7 +394,7 @@ export default async (trello, server, db, config = {}) => {
         });
       }
     } catch (e) {
-      console.error(e);
+      error(e);
     }
   };
 
@@ -384,7 +411,7 @@ export default async (trello, server, db, config = {}) => {
       try {
         update(model, options);
       } catch (e) {
-        console.error(e);
+        error(e);
       }
     });
   });
@@ -394,7 +421,7 @@ export default async (trello, server, db, config = {}) => {
       try {
         destroy(model, options);
       } catch (e) {
-        console.error(e);
+        error(e);
       }
     });
   });

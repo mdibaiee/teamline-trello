@@ -1,18 +1,21 @@
 import Trello from 'node-trello';
 import commentActions from './comment-actions';
-import { request } from './utils';
+import { request, logger } from './utils';
 import sync from './sync';
 import hooks from './hooks';
+import _ from 'lodash';
 
 const DEFAULTS = {
   lists: ['todo', 'doing', 'done', 'homeless']
 };
 export default async (server, db, config = {}) => {
+  const { error } = logger(config);
+
   try {
     const { sequelize, Sequelize } = db;
 
-    const APP = config.sync && config.sync.trello ? config.sync.trello.app : null;
-    const USER = config.sync && config.sync.trello ? config.sync.trello.user : null;
+    const APP = _.get(config, 'sync.trello.app');
+    const USER = _.get(config, 'sync.trello.user');
 
     if (!APP || !USER) {
       throw new Error('Please set sync.trello.app and user.');
@@ -43,24 +46,29 @@ export default async (server, db, config = {}) => {
     const resync = async () => {
       if (syncing) return;
       syncing = true;
-      try {
-        await sync(trello, db, config);
-      } catch (e) {
-        console.error('Trello synchronisation error', e, e.stack);
+
+      if (_.get(config, 'sync.trello.sync') !== false) {
+        try {
+          await sync(trello, db, config);
+        } catch (e) {
+          error('Trello synchronisation error', e, e.stack);
+        }
       }
-      if (config.comment === false) {
+
+      if (_.get(config, 'sync.trello.comment') !== false) {
         try {
           await commentActions(trello, db, config);
         } catch (e) {
-          console.error('Trello commenting error', e, e.stack);
+          error('Trello commenting error', e, e.stack);
         }
       }
+
       syncing = false;
     };
 
     server.on('refresh', resync);
 
-    if (config._test) await resync();
+    if (_.get(config, 'sync.trello._test')) await resync();
     else resync();
 
     hooks(trello, server, db, config);
@@ -70,6 +78,6 @@ export default async (server, db, config = {}) => {
 
     return { resync, hooks };
   } catch (e) {
-    console.error(e);
+    error(e);
   }
 };

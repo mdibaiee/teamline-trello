@@ -1,11 +1,13 @@
-import { request } from './utils';
+import { request, logger } from './utils';
 import { groupBy } from 'lodash';
 import moment from 'moment';
 
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July',
                 'August', 'September', 'October', 'November', 'December'];
 export default async (trello, db, config) => {
-  console.log('comment-actions');
+  const { log } = logger(config);
+
+  log('comment-actions');
   const { sequelize } = db;
   const { Trello, Action, Project, Employee, Role } = sequelize.models;
 
@@ -79,6 +81,9 @@ export default async (trello, db, config) => {
             break;
           case 2:
             postfix = 'nd';
+            break;
+          case 3:
+            postfix = 'rd';
             break;
           default:
             postfix = 'th';

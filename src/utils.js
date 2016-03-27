@@ -1,9 +1,32 @@
 import promisify from 'pify';
+import _ from 'lodash';
 
 export function wait(ms) {
   return new Promise(resolve =>
     setTimeout(resolve, ms)
   );
+}
+
+export function log(...args) {
+  if (this.silent) return false;
+
+  console.log(...args);
+}
+
+export function error(...args) {
+  if (this.silent) return false;
+
+  console.error(...args);
+}
+
+export function logger(config = {}) {
+  const cfg = _.get(config, 'sync.trello');
+  if (typeof cfg.silent === 'undefined') cfg.silent = false;
+
+  return {
+    log: log.bind(cfg),
+    error: error.bind(cfg)
+  };
 }
 
 // Returns a function, that, as long as it continues to be invoked, will not
@@ -63,6 +86,6 @@ export function request(trello) {
 }
 
 setInterval(() => {
-  console.log(c, 'requests in last minute');
+  log(c, 'requests in last minute');
   c = 0;
 }, 60 * 1000);

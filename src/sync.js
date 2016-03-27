@@ -1,8 +1,10 @@
-import { request } from './utils';
+import { request, logger } from './utils';
 
 const notClosed = a => !a.closed;
 export default async (trello, db, config) => {
-  console.log('[sync, trello] Syncing...');
+  const { log, error } = logger(config);
+
+  log('[sync, trello] Syncing...');
   const { sequelize } = db;
   const { Trello, Project, Employee, Team, Role } = sequelize.models;
 
@@ -230,7 +232,7 @@ export default async (trello, db, config) => {
         });
       }
     } catch (e) {
-      console.error('Teamline Trello sync error:', e);
+      error('Teamline Trello sync error:', e);
     }
   }
 
@@ -248,15 +250,6 @@ export default async (trello, db, config) => {
 
         const roles = team.cards;
         for (const role of roles) {
-          let purpose;
-          let accountability;
-          try {
-            purpose = /\*\*purpose\*\*([^*]*)/gi.exec(role.desc)[1];
-            accountability = /\*\*accountability\*\*([^*]*)/gi.exec(role.desc)[1];
-          } catch (e) {
-            //
-          }
-
           const trelloInstance = await Trello.findOne({
             where: {
               trelloId: role.id,
@@ -271,9 +264,15 @@ export default async (trello, db, config) => {
                 id: trelloInstance.modelId
               }
             });
+
+            await r.update({
+              name: role.name,
+              description: role.desc
+            });
           } else {
             r = await Role.create({
-              name: role.name
+              name: role.name,
+              description: role.desc
             });
 
             await Trello.create({
@@ -283,11 +282,7 @@ export default async (trello, db, config) => {
             });
           }
 
-          await r.update({
-            purpose, accountability, name: role.name
-          });
-
-          r.addTeam(t);
+          r.setTeams([t]);
           t.addRole(r);
 
           const roleMembers = await r.getEmployees();
@@ -318,7 +313,7 @@ export default async (trello, db, config) => {
         }
       }
     } catch (e) {
-      console.error('Teamline Trello sync roles error: ', e);
+      error('Teamline Trello sync roles error: ', e);
     }
   }
 
@@ -373,12 +368,14 @@ export default async (trello, db, config) => {
         }
       } catch (e) {
         // not found
-        await instance.destroy();
+        await instance.update({
+          state: 'closed'
+        });
         await t.destroy();
         continue;
       }
     }
   } catch (e) {
-    console.error('Teamline Trello sync removed error:', e);
+    error('Teamline Trello sync removed error:', e);
   }
 };

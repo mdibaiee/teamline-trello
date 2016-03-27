@@ -39,6 +39,18 @@ export const BOARDS = [{
   idMembers: [],
   memberships: [],
   closed: true
+}, {
+  name: 'roles',
+  id: 'test_roles_board',
+  idMembers: [USER.id, USERS[1].id],
+  memberships: [{
+    idMember: USER.id,
+    memberType: 'admin'
+  }, {
+    idMember: USERS[1].id,
+    memberType: 'normal'
+  }],
+  closed: false
 }];
 
 export const CARDS = [{
@@ -46,19 +58,36 @@ export const CARDS = [{
   id: 'test_card',
   desc: 'cool',
   closed: false,
-  idMembers: [USER.id]
+  idMembers: [USER.id],
+  actions: []
 }, {
   name: 'else',
   id: 'test_other_card',
   desc: 'cool 2',
   closed: false,
-  idMembers: [USER.id, USERS[1].id]
+  idMembers: [USER.id, USERS[1].id],
+  actions: []
 }, {
   name: 'other',
   id: 'test_the_other_card',
   desc: 'cool 3',
   closed: false,
-  idMembers: []
+  idMembers: [],
+  actions: []
+}, {
+  name: 'some role',
+  id: 'test_role_card',
+  desc: 'some description',
+  closed: false,
+  idMembers: [USER.id],
+  actions: []
+}, {
+  name: 'some other role',
+  id: 'test_other_role_card',
+  desc: 'some other description',
+  closed: false,
+  idMembers: [USERS[1].id, USER.id],
+  actions: []
 }];
 
 export const LISTS = [{
@@ -78,5 +107,17 @@ export const LISTS = [{
   id: 'test_the_other_list',
   cards: [CARDS[2]],
   idBoard: BOARDS[1].id,
+  closed: false
+}, {
+  name: 'test',
+  id: 'test_team_roles_list',
+  cards: [CARDS[3], CARDS[4]],
+  idBoard: BOARDS[3].id,
+  closed: false
+}, {
+  name: 'test_2',
+  id: 'test_other_team_roles_list',
+  cards: [],
+  idBoard: BOARDS[3].id,
   closed: false
 }];
