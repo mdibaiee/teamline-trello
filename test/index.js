@@ -1,7 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
 import sync from '../src/index';
-// import sinon from 'sinon';
 import bodyParser from 'body-parser';
 import express from 'express';
 import teamline from 'teamline';
