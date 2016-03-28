@@ -1,7 +1,10 @@
 teamline-trello
 ===============
+![Travis CI](https://img.shields.io/travis/mdibaiee/teamline-trello.svg)
+![Codecov](https://img.shields.io/codecov/c/github/mdibaiee/teamline-trello.svg)
+![GitHub](https://img.shields.io/github/downloads/mdibaiee/teamline-trello/latest/total.svg)
 
-Sync users, projects and teams with Trello.
+Sync Teamline database with Trello.
 
 Configuration
 
