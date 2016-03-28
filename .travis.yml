@@ -17,3 +17,12 @@ sudo: false
 cache:
   directories:
     - node_modules
+
+env:
+  - CXX=g++-4.8.2
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - g++-4.8.2
