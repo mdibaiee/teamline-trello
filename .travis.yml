@@ -1,5 +1,5 @@
 before_script:
-  - mysql -e 'create database teamline_test'
+  - mysql -u root -e 'create database teamline_test'
   - npm prune
   - npm install
 script:
