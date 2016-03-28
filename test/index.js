@@ -122,7 +122,11 @@ describe('trello sync', function main() {
     });
 
     if (temp) temp.destroy();
-    temp = await teamline(teamlineConfig);
+    temp = await teamline({
+      pass: '',
+      database: 'teamline_test',
+      ...teamlineConfig
+    });
     db = temp.db;
     server = temp.server;
     server.register(require('inject-then'), err => {
