@@ -27,8 +27,8 @@ describe('trello sync', function main() {
         _test: true,
         app: 'TEST_APP_TOKEN',
         user: 'TEST_USER_TOKEN',
-        // silent: true,
-        silent: false,
+        silent: true,
+        // silent: false,
         webhook: false
       },
     },
@@ -96,14 +96,12 @@ describe('trello sync', function main() {
     });
 
     trello.get('/1/members?/:id/boards', (request, response, next) => {
-      console.log(request._parsedUrl.pathname);
       const id = request.params.id === 'me' ? USER.id : request.params.id;
       response.json(BOARDS.filter(a => a.idMembers.includes(id)));
       next();
     });
 
     trello.get('/1/boards?/:board/members', (request, response, next) => {
-      console.log(request._parsedUrl.pathname);
       const b = BOARDS.find(a => a.id === request.params.board);
       const boardMembers = USERS.filter(a => b.idMembers.includes(a.id));
       response.json(boardMembers);
@@ -111,14 +109,12 @@ describe('trello sync', function main() {
     });
 
     trello.get('/1/boards?/:board/lists', (request, response, next) => {
-      console.log(request._parsedUrl.pathname);
       const boardLists = LISTS.filter(a => a.idBoard === request.params.board);
       response.json(boardLists);
       next();
     });
 
     trello.get('/1/boards?/:board/cards', (request, response, next) => {
-      console.log(request._parsedUrl.pathname);
       const boardLists = LISTS.filter(a => a.idBoard === request.params.board);
       const cards = boardLists.reduce((a, b) => a.concat(b.cards), []);
 
@@ -151,11 +147,7 @@ describe('trello sync', function main() {
       lastname: USERS[1].fullName.split(' ')[1]
     }]);
 
-    try {
-      await sync(server, db, config);
-    } catch (e) {
-      console.error('e', e);
-    }
+    await sync(server, db, config);
   });
 
   // ******************** \\
@@ -524,7 +516,7 @@ describe('trello sync', function main() {
       CARDS[0].closed = true;
 
       // should close the instance and destroy trello instance if it's removed from trello
-      removedCard = CARDS.splice(1, 1);
+      removedCard = CARDS.splice(1, 1)[0];
 
       await sync(server, db, config);
     });
@@ -550,19 +542,18 @@ describe('trello sync', function main() {
       expect(p.state).to.equal('closed');
     });
 
-    it('should close model instance and destroy trello instance if remote is removed', async () => {
+    it('should destroy model instance and trello instance if remote is removed', async () => {
       const p = await models.Project.findOne({
         where: {
-          name: removedCard[0].name
+          name: removedCard.name
         }
       });
 
-      expect(p).to.be.ok;
-      expect(p.state).to.equal('closed');
+      expect(p).not.to.be.ok;
 
       const t = await models.Trello.findOne({
         where: {
-          trelloId: removedCard[0].name
+          trelloId: removedCard.name
         }
       });
 
@@ -572,6 +563,14 @@ describe('trello sync', function main() {
     after(async () => {
       CARDS[0].closed = false;
       CARDS.splice(1, 0, removedCard);
+
+      const project = await models.Project.findOne({
+        name: removedCard.name
+      });
+
+      await project.update({
+        state: LISTS[1].name
+      });
     });
   });
 
@@ -663,367 +662,568 @@ describe('trello sync', function main() {
       await sync(server, db, config);
     });
 
-    context('createCard', () => {
-      it('should create a project on `createCard`', async () => {
-        const index = CARDS.push({
-          id: 'test_hook_card',
-          name: 'hook card',
-          desc: 'createCard description',
-          idMembers: [],
-          closed: false
-        }) - 1;
-        const card = CARDS[index];
-        const list = LISTS[0];
-        const board = BOARDS[0];
-        list.cards.push(card);
+    context('webhooks', () => {
+      context('createCard', () => {
+        it('should create a project on `createCard`', async () => {
+          const index = CARDS.push({
+            id: 'test_hook_card',
+            name: 'hook card',
+            desc: 'createCard description',
+            idMembers: [],
+            closed: false
+          }) - 1;
+          const card = CARDS[index];
+          const list = LISTS[0];
+          const board = BOARDS[0];
+          list.cards.push(card);
 
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'createCard',
-              data: { board, list, card }
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'createCard',
+                data: { board, list, card }
+              }
             }
-          }
+          });
+
+          const project = await models.Project.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Team]
+          });
+
+          expect(project).to.be.ok;
+          expect(project.name).to.equal(card.name);
+          expect(project.description).to.equal(card.desc);
+          expect(project.Team).to.be.ok;
+          expect(project.Team.name).to.equal(board.name);
+          CARDS.pop();
+          list.cards.pop();
         });
 
-        const project = await models.Project.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Team]
-        });
+        it('should create a role on `createCard`', async () => {
+          const index = CARDS.push({
+            name: 'hook role',
+            id: 'test_hook_role',
+            desc: 'hook role description',
+            idMembers: [],
+            closed: false
+          }) - 1;
 
-        expect(project).to.be.ok;
-        expect(project.name).to.equal(card.name);
-        expect(project.description).to.equal(card.desc);
-        expect(project.Team).to.be.ok;
-        expect(project.Team.name).to.equal(board.name);
-        CARDS.pop();
-        list.cards.pop();
+          const card = CARDS[index];
+          const list = ROLE_LISTS[0];
+          const board = ROLE_BOARDS[0];
+          list.cards.push(card);
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'createCard',
+                data: { board, list, card }
+              }
+            }
+          });
+
+          const role = await models.Role.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Team]
+          });
+
+          expect(role).to.be.ok;
+          expect(role.name).to.equal(card.name);
+          expect(role.description).to.equal(card.desc);
+          expect(role.Teams[0]).to.be.ok;
+          expect(role.Teams[0].name).to.equal(list.name);
+          CARDS.pop();
+          list.cards.pop();
+        });
       });
 
-      it('should create a role on `createCard`', async () => {
-        const index = CARDS.push({
-          name: 'hook role',
-          id: 'test_hook_role',
-          desc: 'hook role description',
-          idMembers: [],
-          closed: false
-        }) - 1;
+      context('updateCard', () => {
+        it('should update project information', async () => {
+          const card = CARDS[0];
+          const list = LISTS[0];
+          const board = BOARDS[0];
+          card.name = 'new name';
+          card.desc = 'new description';
 
-        const card = CARDS[index];
-        const list = ROLE_LISTS[0];
-        const board = ROLE_BOARDS[0];
-        list.cards.push(card);
+          const updatedList = LISTS[1];
+          list.cards.push(card);
 
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'createCard',
-              data: { board, list, card }
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'updateCard',
+                data: {
+                  board, card,
+                  listBefore: list,
+                  listAfter: updatedList
+                }
+              }
             }
-          }
+          });
+
+          const project = await models.Project.findOne({
+            where: {
+              name: card.name
+            }
+          });
+
+          expect(project).to.be.ok;
+          expect(project.name).to.equal(card.name);
+          expect(project.description).to.equal(card.desc);
+          expect(project.state).to.equal(updatedList.name);
+
+          card.closed = true;
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'updateCard',
+                data: {
+                  board, card
+                }
+              }
+            }
+          });
+
+          const closed = await models.Project.findOne({
+            where: {
+              name: card.name
+            }
+          });
+
+          expect(closed).to.be.ok;
+          expect(closed.state).to.equal('closed');
         });
 
-        const role = await models.Role.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Team]
+        it('should update role information', async () => {
+          const card = ROLE_CARDS[0];
+          card.name = 'new role name';
+          card.desc = 'new role description';
+          const list = ROLE_LISTS[0];
+          const updatedList = ROLE_LISTS[1];
+          const board = ROLE_BOARDS[0];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'updateCard',
+                data: {
+                  card, board,
+                  listBefore: list,
+                  listAfter: updatedList
+                }
+              }
+            }
+          });
+
+          const role = await models.Role.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Team]
+          });
+
+          expect(role).to.be.ok;
+          expect(role.name).to.equal(card.name);
+          expect(role.description).to.equal(card.desc);
+          expect(role.Teams[0]).to.be.ok;
+          expect(role.Teams[0].name).to.equal(updatedList.name);
+        });
+      });
+
+      context('deleteCard', () => {
+        it('should close project', async () => {
+          const card = CARDS[0];
+          const list = LISTS[0];
+          const board = BOARDS[0];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'deleteCard',
+                data: {
+                  card, list, board
+                }
+              }
+            }
+          });
+
+          const project = await models.Project.findOne({
+            where: {
+              name: card.name
+            }
+          });
+
+          expect(project).to.be.ok;
+          expect(project.state).to.equal('closed');
         });
 
-        expect(role).to.be.ok;
-        expect(role.name).to.equal(card.name);
-        expect(role.description).to.equal(card.desc);
-        expect(role.Teams[0]).to.be.ok;
-        expect(role.Teams[0].name).to.equal(list.name);
-        CARDS.pop();
-        list.cards.pop();
+        it('should close role', async () => {
+          const card = ROLE_CARDS[0];
+          const list = ROLE_LISTS[0];
+          const board = ROLE_BOARDS[0];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'deleteCard',
+                data: {
+                  card, list, board
+                }
+              }
+            }
+          });
+
+          const role = await models.Role.findOne({
+            where: {
+              name: card.name
+            }
+          });
+
+          expect(role).to.be.ok;
+          expect(role.closed).to.be.true;
+        });
+      });
+
+      context('addMemberToCard', () => {
+        it('should add member to project', async () => {
+          const card = CARDS[0];
+          const board = BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'addMemberToCard',
+                data: {
+                  card, board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const project = await models.Project.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Employee]
+          });
+
+          expect(project).to.be.ok;
+          expect(project.Employees.map(a => a.username)).to.include.members([user.username]);
+        });
+
+        it('should add member to role', async () => {
+          const card = ROLE_CARDS[0];
+          const board = ROLE_BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'addMemberToCard',
+                data: {
+                  card, board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const role = await models.Role.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Employee]
+          });
+
+          expect(role).to.be.ok;
+          expect(role.Employees.map(a => a.username)).to.include.members([user.username]);
+        });
+      });
+
+      context('removeMemberFromCard', () => {
+        it('should remove employee from project', async () => {
+          const card = CARDS[0];
+          const board = BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'removeMemberFromCard',
+                data: {
+                  card, board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const project = await models.Project.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Employee]
+          });
+
+          expect(project).to.be.ok;
+          expect(project.Employees.map(a => a.username)).not.to.include.members([user.username]);
+        });
+
+        it('should add member to role', async () => {
+          const card = ROLE_CARDS[0];
+          const board = ROLE_BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'removeMemberFromCard',
+                data: {
+                  card, board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const role = await models.Role.findOne({
+            where: {
+              name: card.name
+            },
+            include: [models.Employee]
+          });
+
+          expect(role).to.be.ok;
+          expect(role.Employees.map(a => a.username)).not.to.include.members([user.username]);
+        });
+      });
+
+      context('addMemberToBoard', () => {
+        it('should add the member to team', async () => {
+          const board = BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'addMemberToBoard',
+                data: {
+                  board,
+                  idMemberAdded: user.id
+                }
+              }
+            }
+          });
+
+          const team = await models.Team.findOne({
+            where: {
+              name: board.name
+            },
+            include: [models.Employee]
+          });
+
+          expect(team).to.be.ok;
+          expect(team.Employees).to.be.ok;
+          expect(team.Employees.map(a => a.username)).to.include.members([user.username]);
+        });
+      });
+
+      context('removeMemberFromBoard', () => {
+        it('should remove the member from team', async () => {
+          const board = BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'removeMemberFromBoard',
+                data: {
+                  board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const team = await models.Team.findOne({
+            where: {
+              name: board.name
+            },
+            include: [models.Employee]
+          });
+
+          expect(team).to.be.ok;
+          expect(team.Employees).to.be.ok;
+          expect(team.Employees.map(a => a.username)).not.to.include.members([user.username]);
+        });
+      });
+
+      context('makeAdminOfBoard', () => {
+        it('should set the member as manager of team', async () => {
+          const board = BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'makeAdminOfBoard',
+                data: {
+                  board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const team = await models.Team.findOne({
+            where: {
+              name: board.name
+            }
+          });
+
+          const managers = await team.getManagers();
+
+          expect(team).to.be.ok;
+          expect(managers).to.be.ok;
+          expect(managers.map(a => a.username)).to.include.members([user.username]);
+        });
+      });
+
+      context('makeNormalMemberOfBoard', () => {
+        it('should demote the member to a normal employee', async () => {
+          const board = BOARDS[0];
+          const user = USERS[1];
+
+          await server.injectThen({
+            method: 'POST',
+            url: path,
+            payload: {
+              action: {
+                type: 'makeNormalMemberOfBoard',
+                data: {
+                  board,
+                  idMember: user.id
+                }
+              }
+            }
+          });
+
+          const team = await models.Team.findOne({
+            where: {
+              name: board.name
+            }
+          });
+
+          const managers = await team.getManagers();
+
+          expect(team).to.be.ok;
+          expect(managers).to.be.ok;
+          expect(managers.map(a => a.username)).not.to.include.members([user.username]);
+        });
       });
     });
 
-    context('updateCard', () => {
-      it('should update project information', async () => {
-        const card = CARDS[0];
-        const list = LISTS[0];
-        const board = BOARDS[0];
-        card.name = 'new name';
-        card.desc = 'new description';
+    context('database hooks', () => {
+      context('actions', () => {
+        it('should run comments', async (done) => {
+          trello.post('/1/cards?/:id/actions?/comments?', (request) => {
+            expect(request.params.id).to.equal(CARDS[1].id);
+            done();
+          });
 
-        const updatedList = LISTS[1];
-        list.cards.push(card);
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'updateCard',
-              data: {
-                board, card,
-                listBefore: list,
-                listAfter: updatedList
-              }
+          const action = await models.Action.create({
+            name: 'test database hooks'
+          });
+          const project = await models.Project.findOne({
+            where: {
+              name: CARDS[1].name
             }
-          }
-        });
-
-        const project = await models.Project.findOne({
-          where: {
-            name: card.name
-          }
-        });
-
-        expect(project).to.be.ok;
-        expect(project.name).to.equal(card.name);
-        expect(project.description).to.equal(card.desc);
-        expect(project.state).to.equal(updatedList.name);
-
-        card.closed = true;
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'updateCard',
-              data: {
-                board, card
-              }
+          });
+          const emp = await models.Employee.findOne({
+            where: {
+              username: USER.username
             }
-          }
+          });
+          action.setProject(project);
+          action.setEmployee(emp);
+          project.addAction(action);
         });
-
-        const closed = await models.Project.findOne({
-          where: {
-            name: card.name
-          }
-        });
-
-        expect(closed).to.be.ok;
-        expect(closed.state).to.equal('closed');
       });
 
-      it('should update role information', async () => {
-        const card = ROLE_CARDS[0];
-        card.name = 'new role name';
-        card.desc = 'new role description';
-        const list = ROLE_LISTS[0];
-        const updatedList = ROLE_LISTS[1];
-        const board = ROLE_BOARDS[0];
+      context('projects', () => {
+        it('should post a homeless project and assign the employee', async (done) => {
+          const project = await models.Project.create({
+            name: 'some new project db hook',
+            description: 'something!'
+          });
 
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'updateCard',
-              data: {
-                card, board,
-                listBefore: list,
-                listAfter: updatedList
-              }
+          const emp = await models.Employee.findOne({
+            where: {
+              username: USER.username
             }
-          }
-        });
+          });
 
-        const role = await models.Role.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Team]
-        });
-
-        expect(role).to.be.ok;
-        expect(role.name).to.equal(card.name);
-        expect(role.description).to.equal(card.desc);
-        expect(role.Teams[0]).to.be.ok;
-        expect(role.Teams[0].name).to.equal(updatedList.name);
-      });
-    });
-
-    context('deleteCard', () => {
-      it('should close project', async () => {
-        const card = CARDS[0];
-        const list = LISTS[0];
-        const board = BOARDS[0];
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'deleteCard',
-              data: {
-                card, list, board
-              }
+          const team = await models.Team.findOne({
+            where: {
+              name: BOARDS[0].name
             }
-          }
+          });
+
+          project.addEmployee(emp);
+          project.setTeam(team);
+          team.addProject(project);
+          emp.addProject(project);
+
+          // create homeless projects list
+          trello.get('/1/lists?/:id/cards?', (request, response, next) => {
+            expect(request.params.id).to.equal('0');
+
+            response.json([]);
+            next();
+          });
+          trello.post('/1/lists?/:id/cards?', (request, response, next) => {
+            expect(request.params.id).to.equal('0');
+            expect(request.body.name).to.equal(project.name);
+            expect(request.body.desc).to.equal(project.description);
+            next();
+            done();
+          });
         });
-
-        const project = await models.Project.findOne({
-          where: {
-            name: card.name
-          }
-        });
-
-        expect(project).to.be.ok;
-        expect(project.state).to.equal('closed');
-      });
-
-      it('should close role', async () => {
-        const card = ROLE_CARDS[0];
-        const list = ROLE_LISTS[0];
-        const board = ROLE_BOARDS[0];
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'deleteCard',
-              data: {
-                card, list, board
-              }
-            }
-          }
-        });
-
-        const role = await models.Role.findOne({
-          where: {
-            name: card.name
-          }
-        });
-
-        expect(role).to.be.ok;
-        expect(role.closed).to.be.true;
-      });
-    });
-
-    context('addMemberToCard', () => {
-      it('should add member to project', async () => {
-        const card = CARDS[0];
-        const board = BOARDS[0];
-        const user = USERS[1];
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'addMemberToCard',
-              data: {
-                card, board,
-                idMember: user.id
-              }
-            }
-          }
-        });
-
-        const project = await models.Project.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Employee]
-        });
-
-        expect(project).to.be.ok;
-        expect(project.Employees.map(a => a.username)).to.include.members([user.username]);
-      });
-
-      it('should add member to role', async () => {
-        const card = ROLE_CARDS[0];
-        const board = ROLE_BOARDS[0];
-        const user = USERS[1];
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'addMemberToCard',
-              data: {
-                card, board,
-                idMember: user.id
-              }
-            }
-          }
-        });
-
-        const role = await models.Role.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Employee]
-        });
-
-        expect(role).to.be.ok;
-        expect(role.Employees.map(a => a.username)).to.include.members([user.username]);
-      });
-    });
-
-    context('removeMemberFromCard', () => {
-      it('should remove employee from project', async () => {
-        const card = CARDS[0];
-        const board = BOARDS[0];
-        const user = USERS[1];
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'removeMemberFromCard',
-              data: {
-                card, board,
-                idMember: user.id
-              }
-            }
-          }
-        });
-
-        const project = await models.Project.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Employee]
-        });
-
-        expect(project).to.be.ok;
-        expect(project.Employees.map(a => a.username)).not.to.include.members([user.username]);
-      });
-
-      it('should add member to role', async () => {
-        const card = ROLE_CARDS[0];
-        const board = ROLE_BOARDS[0];
-        const user = USERS[1];
-
-        await server.injectThen({
-          method: 'POST',
-          url: path,
-          payload: {
-            action: {
-              type: 'removeMemberFromCard',
-              data: {
-                card, board,
-                idMember: user.id
-              }
-            }
-          }
-        });
-
-        const role = await models.Role.findOne({
-          where: {
-            name: card.name
-          },
-          include: [models.Employee]
-        });
-
-        expect(role).to.be.ok;
-        expect(role.Employees.map(a => a.username)).not.to.include.members([user.username]);
       });
     });
   });

@@ -29,26 +29,6 @@ export function logger(config = {}) {
   };
 }
 
-// Returns a function, that, as long as it continues to be invoked, will not
-// be triggered. The function will be called after it stops being called for
-// N milliseconds. If `immediate` is passed, trigger the function on the
-// leading edge, instead of the trailing.
-export function debounce(func, delay, immediate) {
-  let timeout;
-  return function () {
-    const context = this;
-    const args = arguments;
-    const later = function () {
-      timeout = null;
-      if (!immediate) func.apply(context, args);
-    };
-    const callNow = immediate && !timeout;
-    clearTimeout(timeout);
-    timeout = setTimeout(later, delay);
-    if (callNow) func.apply(context, args);
-  };
-}
-
 const WAIT_TIME = 500;
 let c = 0;
 export function request(trello) {
@@ -85,6 +65,7 @@ export function request(trello) {
   };
 }
 
+/* istanbul ignore next */
 setInterval(() => {
   log(c, 'requests in last minute');
   c = 0;

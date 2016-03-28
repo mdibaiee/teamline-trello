@@ -38,7 +38,6 @@ export default async (trello, server, db, config = {}) => {
         const { action } = req.payload;
         const { type, data } = action;
         log(type, data);
-        console.log(type, data);
 
         switch (type) { //eslint-disable-line
           case 'createCard': {
@@ -336,13 +335,16 @@ export default async (trello, server, db, config = {}) => {
       const modelName = options.model.options.name.singular;
 
       if (modelName === 'Action') {
-        comment();
+        setTimeout(() => {
+          comment();
+        }, 500);
       }
 
       if (modelName === 'Project') {
         const previous = await Trello.findOne({
           where: {
-            modelId: model.id
+            modelId: model.id,
+            type: 'project'
           }
         });
 
@@ -384,6 +386,7 @@ export default async (trello, server, db, config = {}) => {
 
         const card = await post(`/1/lists/${list.id}/cards`, {
           name: model.name,
+          desc: model.description,
           idMembers: members
         });
 

@@ -368,9 +368,7 @@ export default async (trello, db, config) => {
         }
       } catch (e) {
         // not found
-        await instance.update({
-          state: 'closed'
-        });
+        await instance.destroy();
         await t.destroy();
         continue;
       }
