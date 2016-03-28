@@ -123,7 +123,6 @@ describe('trello sync', function main() {
 
     if (temp) temp.destroy();
     temp = await teamline({
-      pass: false,
       database: 'teamline_test',
       ...teamlineConfig
     });
