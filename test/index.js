@@ -136,7 +136,7 @@ describe('trello sync', function main() {
     for (const key of Object.keys(models)) {
       const model = models[key];
 
-      await model.destroy({ where: {} });
+      await model.destroy({ hooks: false, where: {} });
     }
 
     await models.Employee.bulkCreate([{
@@ -595,10 +595,8 @@ describe('trello sync', function main() {
         }
       });
 
-      project.addAction(action);
       action.setProject(project);
       action.setEmployee(employee);
-      employee.addAction(action);
 
       trello.post('/1/cards?/:id/actions?/comments?', (request, response, next) => {
         test.card = {
@@ -998,7 +996,7 @@ describe('trello sync', function main() {
           expect(project.Employees.map(a => a.username)).not.to.include.members([user.username]);
         });
 
-        it('should add member to role', async () => {
+        it('should remove member from role', async () => {
           const card = ROLE_CARDS[0];
           const board = ROLE_BOARDS[0];
           const user = USERS[1];
@@ -1183,7 +1181,6 @@ describe('trello sync', function main() {
           });
           action.setProject(project);
           action.setEmployee(emp);
-          project.addAction(action);
         });
       });
 
@@ -1208,8 +1205,6 @@ describe('trello sync', function main() {
 
           project.addEmployee(emp);
           project.setTeam(team);
-          team.addProject(project);
-          emp.addProject(project);
 
           // create homeless projects list
           trello.get('/1/lists?/:id/cards?', (request, response, next) => {
@@ -1239,7 +1234,7 @@ describe('trello sync', function main() {
     for (const key of Object.keys(models)) {
       const model = models[key];
 
-      await model.destroy({ where: {}, hooks: false });
+      await model.destroy({ hooks: false, where: {} });
     }
   });
 });

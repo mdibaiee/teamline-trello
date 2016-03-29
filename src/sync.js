@@ -17,6 +17,7 @@ export default async (trello, db, config) => {
 
   const teamBoards = boards.filter(b => !b.name.toLowerCase().includes('roles'));
   const roleBoard = boards.find(b => b.name.toLowerCase().includes('roles'));
+  const opts = { hooks: false };
 
   {
     const teams = await Team.scope('open').findAll();
@@ -34,13 +35,13 @@ export default async (trello, db, config) => {
         if (!tb || r.closed) {
           await team.update({
             closed: true
-          });
-          if (tb) await tb.destroy();
+          }, opts);
+          if (tb) await tb.destroy(opts);
         }
       } catch (e) { // request failed, no such board exists on Trello
         await team.update({
           closed: true
-        });
+        }, opts);
       }
     }
   }
@@ -62,29 +63,28 @@ export default async (trello, db, config) => {
       });
 
       if (!team) {
-        await trelloBoard.destroy();
+        await trelloBoard.destroy(opts);
         continue;
       }
 
       await team.update({
         name: board.name
-      });
+      }, opts);
     } else {
       team = await Team.create({
         name: board.name
-      });
+      }, opts);
 
       Trello.create({
         trelloId: board.id,
         modelId: team.id,
         type: 'team',
-        hooks: false
-      });
+      }, opts);
     }
 
     const boardMembers = await get(`/1/boards/${board.id}/members`);
 
-    team.setManagers([]);
+    await team.setManagers([]);
 
     for (const member of boardMembers) {
       const emp = await Employee.findOne({
@@ -116,12 +116,11 @@ export default async (trello, db, config) => {
         hooks: false
       });
 
-      team.addEmployee(emp);
-      emp.addTeam(team);
+      await team.addEmployee(emp, opts);
 
       const type = board.memberships.find(a => a.idMember === member.id).memberType;
       if (type === 'admin') {
-        team.addManager(emp);
+        await team.addManager(emp, opts);
       }
     }
 
@@ -172,20 +171,18 @@ export default async (trello, db, config) => {
               name: card.name,
               description: card.desc,
               state
-            }, { hooks: false });
+            }, opts);
           }
 
-          await project.setTeam(team);
-          await team.addProject(project);
+          await project.setTeam(team, opts);
 
-          await project.setEmployees([]);
+          await project.setEmployees([], opts);
           for (const id of card.idMembers) {
             const user = boardMembers.find(a => a.id === id);
             const emp = user.employee;
             if (!emp) continue;
 
-            await emp.addProject(project);
-            await project.addEmployee(emp);
+            await emp.addProject(project, opts);
           }
         });
       }
@@ -229,7 +226,7 @@ export default async (trello, db, config) => {
           trelloId: newCard.id,
           modelId: project.id,
           type: 'project'
-        });
+        }, opts);
       }
     } catch (e) {
       error('Teamline Trello sync error:', e);
@@ -268,22 +265,21 @@ export default async (trello, db, config) => {
             await r.update({
               name: role.name,
               description: role.desc
-            });
+            }, opts);
           } else {
             r = await Role.create({
               name: role.name,
               description: role.desc
-            });
+            }, opts);
 
             await Trello.create({
               modelId: r.id,
               trelloId: role.id,
               type: 'role'
-            });
+            }, opts);
           }
 
-          r.setTeams([t]);
-          t.addRole(r);
+          await r.setTeams([t], opts);
 
           const roleMembers = await r.getEmployees();
           await* role.idMembers.map(async memberId => { // eslint-disable-line
@@ -303,8 +299,7 @@ export default async (trello, db, config) => {
             });
             if (!emp) return;
 
-            emp.addRole(r);
-            r.addEmployee(emp);
+            await emp.addRole(r, opts);
             const rm = roleMembers.find(e => e.id === emp.id);
             if (rm) rm._member = true;
           });
@@ -352,7 +347,7 @@ export default async (trello, db, config) => {
 
       if (!instance) {
         try {
-          await t.destroy();
+          await t.destroy(opts);
         } catch (e) {
           //
         }
@@ -364,12 +359,12 @@ export default async (trello, db, config) => {
         if (trelloInstance.closed) {
           await instance.update({
             state: 'closed'
-          });
+          }, opts);
         }
       } catch (e) {
         // not found
-        await instance.destroy();
-        await t.destroy();
+        await instance.destroy(opts);
+        await t.destroy(opts);
         continue;
       }
     }

@@ -16,6 +16,9 @@ export default async (trello, server, db, config = {}) => {
     return;
   }
 
+  // hooks should not trigger themselves, that would create a recursion in some cases
+  const opts = { hooks: false };
+
   server.route({
     method: 'GET',
     path,
@@ -63,16 +66,15 @@ export default async (trello, server, db, config = {}) => {
               const role = await Role.create({
                 name: card.name,
                 description: card.desc
-              });
+              }, opts);
 
-              team.addRole(role);
-              role.addTeam(team);
+              await role.setTeams([team], opts);
 
               await Trello.create({
                 modelId: role.id,
                 trelloId: card.id,
                 type: 'role'
-              });
+              }, opts);
             } else {
               const match = data.list.name.match(/todo|doing|done/i);
               if (!match && !roles) break;
@@ -88,16 +90,15 @@ export default async (trello, server, db, config = {}) => {
                 name: card.name,
                 description: card.desc,
                 state
-              });
+              }, opts);
 
               await Trello.create({
                 modelId: project.id,
                 trelloId: card.id,
                 type: 'project'
-              });
+              }, opts);
 
-              team.addProject(project);
-              project.setTeam(team);
+              await team.addProject(project, opts);
             }
 
             break;
@@ -131,15 +132,14 @@ export default async (trello, server, db, config = {}) => {
                   }
                 });
 
-                team.addRole(role);
-                role.setTeams([team]);
+                await role.setTeams([team]);
               }
 
               await role.update({
                 name: card.name,
                 description: card.desc,
                 closed: type === 'deleteCard' ? true : card.closed
-              });
+              }, opts);
             } else {
               const project = await Project.findOne({
                 where: {
@@ -159,7 +159,7 @@ export default async (trello, server, db, config = {}) => {
                 name: card.name,
                 description: card.desc,
                 state
-              });
+              }, opts);
             }
 
             break;
@@ -197,11 +197,9 @@ export default async (trello, server, db, config = {}) => {
               });
 
               if (type === 'addMemberToCard') {
-                role.addEmployee(emp);
-                emp.addRole(role);
+                await role.addEmployee(emp, opts);
               } else {
-                role.removeEmployee(emp);
-                emp.removeRole(role);
+                await role.removeEmployee(emp, opts);
               }
             } else {
               const project = await Project.findOne({
@@ -211,11 +209,9 @@ export default async (trello, server, db, config = {}) => {
               });
 
               if (type === 'addMemberToCard') {
-                project.addEmployee(emp);
-                emp.addProject(project);
+                await project.addEmployee(emp, opts);
               } else {
-                project.removeEmployee(emp);
-                emp.removeProject(project);
+                await project.removeEmployee(emp, opts);
               }
             }
 
@@ -254,19 +250,17 @@ export default async (trello, server, db, config = {}) => {
             });
 
             if (type === 'removeMemberFromBoard') {
-              team.removeEmployee(employee);
-              employee.removeTeam(team);
+              await team.removeEmployee(employee, opts);
             } else if (type === 'addMemberToBoard') {
-              team.addEmployee(employee);
-              employee.addTeam(team);
+              await team.addEmployee(employee, opts);
 
               if (data.memberType === 'admin') {
-                team.addManager(employee);
+                await team.addManager(employee, opts);
               }
             } else if (type === 'makeAdminOfBoard') {
-              team.addManager(employee);
+              await team.addManager(employee, opts);
             } else if (type === 'makeNormalMemberOfBoard') {
-              team.removeManager(employee);
+              await team.removeManager(employee, opts);
             }
 
             await wait(200);
@@ -290,8 +284,8 @@ export default async (trello, server, db, config = {}) => {
             if (!team) break;
 
             await team.update({
-              name: board.name
-            });
+              name: board.name,
+            }, opts);
           }
         }
 
@@ -393,7 +387,8 @@ export default async (trello, server, db, config = {}) => {
         await Trello.create({
           modelId: model.id,
           trelloId: card.id,
-          type: 'project'
+          type: 'project',
+          ...opts
         });
       }
     } catch (e) {
@@ -411,21 +406,13 @@ export default async (trello, server, db, config = {}) => {
   ['afterCreate', 'afterUpdate',
   'afterBulkCreate', 'afterBulkDestroy', 'afterBulkUpdate'].forEach(ev => {
     sequelize.addHook(ev, (model, options) => {
-      try {
-        update(model, options);
-      } catch (e) {
-        error(e);
-      }
+      update(model, options);
     });
   });
 
   ['afterDestroy', 'afterBulkDestroy'].forEach(ev => {
     sequelize.addHook(ev, (model, options) => {
-      try {
-        destroy(model, options);
-      } catch (e) {
-        error(e);
-      }
+      destroy(model, options);
     });
   });
 };
