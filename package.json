@@ -1,6 +1,6 @@
 {
   "name": "teamline-trello",
-  "version": "1.7.14",
+  "version": "1.7.15",
   "description": "Sync Teamline with your Trello boards",
   "main": "build/index.js",
   "scripts": {
@@ -13,7 +13,7 @@
   },
   "config": {
     "ghooks": {
-      "pre-commit": "grunt && npm run test:single && npm run check-coverage && npm run lint"
+      "pre-commit": "npm run lint && grunt && npm run test:single && npm run check-coverage"
     }
   },
   "keywords": [
