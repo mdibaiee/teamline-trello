@@ -20,7 +20,7 @@ export function error(...args) {
 }
 
 export function logger(config = {}) {
-  const cfg = _.get(config, 'sync.trello');
+  const cfg = _.get(config, 'sync.trello', {});
   if (typeof cfg.silent === 'undefined') cfg.silent = false;
 
   return {
