@@ -1,6 +1,6 @@
 {
   "name": "teamline-trello",
-  "version": "1.7.16",
+  "version": "1.7.17",
   "description": "Sync Teamline with your Trello boards",
   "main": "build/index.js",
   "scripts": {
