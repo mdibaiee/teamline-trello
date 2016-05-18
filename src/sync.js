@@ -25,8 +25,8 @@ export default async (trello, db, config) => {
       const tb = await Trello.findOne({
         where: {
           modelId: team.id,
-          type: 'team'
-        }
+          type: 'team',
+        },
       });
 
       try {
@@ -34,13 +34,13 @@ export default async (trello, db, config) => {
 
         if (!tb || r.closed) {
           await team.update({
-            closed: true
+            closed: true,
           }, opts);
           if (tb) await tb.destroy(opts);
         }
       } catch (e) { // request failed, no such board exists on Trello
         await team.update({
-          closed: true
+          closed: true,
         }, opts);
       }
     }
@@ -50,16 +50,16 @@ export default async (trello, db, config) => {
     const trelloBoard = await Trello.findOne({
       where: {
         trelloId: board.id,
-        type: 'team'
-      }
+        type: 'team',
+      },
     });
 
     let team;
     if (trelloBoard) {
       team = await Team.findOne({
         where: {
-          id: trelloBoard.modelId
-        }
+          id: trelloBoard.modelId,
+        },
       });
 
       if (!team) {
@@ -68,11 +68,11 @@ export default async (trello, db, config) => {
       }
 
       await team.update({
-        name: board.name
+        name: board.name,
       }, opts);
     } else {
       team = await Team.create({
-        name: board.name
+        name: board.name,
       }, opts);
 
       Trello.create({
@@ -98,7 +98,7 @@ export default async (trello, db, config) => {
             ),
             member.fullName
           )
-        )
+        ),
       });
       if (!emp) {
         member.employee = null;
@@ -111,9 +111,9 @@ export default async (trello, db, config) => {
         where: {
           trelloId: member.id,
           modelId: emp.id,
-          type: 'employee'
+          type: 'employee',
         },
-        hooks: false
+        hooks: false,
       });
 
       await team.addEmployee(emp, opts);
@@ -137,8 +137,8 @@ export default async (trello, db, config) => {
           const previousVersion = await Trello.findOne({
             where: {
               type: 'project',
-              trelloId: card.id
-            }
+              trelloId: card.id,
+            },
           });
 
           let project;
@@ -147,30 +147,30 @@ export default async (trello, db, config) => {
               where: {
                 name: card.name,
                 description: card.desc,
-                state
+                state,
               },
-              hooks: false
+              hooks: false,
             });
 
             Trello.findOrCreate({
               where: {
                 trelloId: card.id,
                 modelId: project.id,
-                type: 'project'
+                type: 'project',
               },
-              hooks: false
+              hooks: false,
             });
           } else {
             project = await Project.findOne({
               where: {
-                id: previousVersion.modelId
-              }
+                id: previousVersion.modelId,
+              },
             });
 
             await project.update({
               name: card.name,
               description: card.desc,
-              state
+              state,
             }, opts);
           }
 
@@ -192,24 +192,24 @@ export default async (trello, db, config) => {
         include: [{
           model: Team,
           where: {
-            id: team.id
-          }
-        }]
+            id: team.id,
+          },
+        }],
       });
 
       for (const project of projects) {
         const hasTrello = await Trello.findOne({
           where: {
             modelId: project.id,
-            type: 'project'
-          }
+            type: 'project',
+          },
         });
 
         if (hasTrello) continue;
 
         const list = lists.find(a => a.name.toLowerCase().includes('homeless')) ||
                     await post(`/1/boards/${board.id}/lists`, {
-                      name: 'Homeless Projects'
+                      name: 'Homeless Projects',
                     });
 
         const [employee] = await project.getEmployees();
@@ -219,13 +219,13 @@ export default async (trello, db, config) => {
 
         const newCard = await post(`/1/lists/${list.id}/cards`, {
           name: project.name,
-          idMembers: [member.id]
+          idMembers: [member.id],
         });
 
         await Trello.create({
           trelloId: newCard.id,
           modelId: project.id,
-          type: 'project'
+          type: 'project',
         }, opts);
       }
     } catch (e) {
@@ -239,8 +239,8 @@ export default async (trello, db, config) => {
       for (const team of teams) {
         const t = await Team.findOne({
           where: {
-            name: team.name
-          }
+            name: team.name,
+          },
         });
 
         if (!t) continue;
@@ -250,59 +250,59 @@ export default async (trello, db, config) => {
           const trelloInstance = await Trello.findOne({
             where: {
               trelloId: role.id,
-              type: 'role'
-            }
+              type: 'role',
+            },
           });
 
           let r;
           if (trelloInstance) {
             r = await Role.findOne({
               where: {
-                id: trelloInstance.modelId
-              }
+                id: trelloInstance.modelId,
+              },
             });
 
             await r.update({
               name: role.name,
-              description: role.desc
+              description: role.desc,
             }, opts);
           } else {
             r = await Role.create({
               name: role.name,
-              description: role.desc
+              description: role.desc,
             }, opts);
 
             await Trello.create({
               modelId: r.id,
               trelloId: role.id,
-              type: 'role'
+              type: 'role',
             }, opts);
           }
 
           await r.setTeams([t], opts);
 
           const roleMembers = await r.getEmployees();
-          await* role.idMembers.map(async memberId => { // eslint-disable-line
+          await Promise.all(role.idMembers.map(async memberId => { // eslint-disable-line
             const tr = await Trello.findOne({
               where: {
                 trelloId: memberId,
-                type: 'employee'
-              }
+                type: 'employee',
+              },
             });
 
             if (!tr) return;
 
             const emp = await Employee.findOne({
               where: {
-                id: tr.modelId
-              }
+                id: tr.modelId,
+              },
             });
             if (!emp) return;
 
             await emp.addRole(r, opts);
             const rm = roleMembers.find(e => e.id === emp.id);
             if (rm) rm._member = true;
-          });
+          }));
 
           roleMembers.filter(e => !e._member).forEach(emp => r.removeEmployee(emp));
         }
@@ -341,8 +341,8 @@ export default async (trello, db, config) => {
 
       const instance = await model.findOne({
         where: {
-          id: t.modelId
-        }
+          id: t.modelId,
+        },
       });
 
       if (!instance) {
@@ -358,7 +358,7 @@ export default async (trello, db, config) => {
         const trelloInstance = await get(`/1/${trelloModel}/${t.trelloId}`);
         if (trelloInstance.closed) {
           await instance.update({
-            state: 'closed'
+            state: 'closed',
           }, opts);
         }
       } catch (e) {

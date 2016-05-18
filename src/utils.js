@@ -25,7 +25,7 @@ export function logger(config = {}) {
 
   return {
     log: log.bind(cfg),
-    error: error.bind(cfg)
+    error: error.bind(cfg),
   };
 }
 
@@ -61,7 +61,7 @@ export function request(trello) {
       const result = await del(...args);
       await wait(WAIT_TIME);
       return result;
-    }
+    },
   };
 }
 

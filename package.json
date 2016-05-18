@@ -1,9 +1,11 @@
 {
   "name": "teamline-trello",
-  "version": "1.7.17",
+  "version": "1.7.18",
   "description": "Sync Teamline with your Trello boards",
   "main": "build/index.js",
   "scripts": {
+    "lint": "eslint src test",
+    "lint-fix": "eslint src test --fix",
     "test": "mocha test --compilers js:babel/register,js:babel/polyfill -w",
     "test:single": "istanbul cover -x test _mocha -- test --compilers js:babel/register,js:babel/polyfill",
     "test:file": "mocha --compilers js:babel/register,js:babel/polyfill",
@@ -26,12 +28,11 @@
   "license": "MIT",
   "devDependencies": {
     "babel": "5.8.3",
-    "babel-eslint": "4.1.6",
     "body-parser": "1.15.0",
     "chai": "3.5.0",
     "codecov.io": "0.1.6",
-    "eslint": "1.10.3",
-    "eslint-config-airbnb": "4.0.0",
+    "eslint": "2.10.2",
+    "eslint-config-pichak": "1.0.0",
     "express": "4.13.4",
     "ghooks": "1.0.1",
     "grunt": "0.4.5",

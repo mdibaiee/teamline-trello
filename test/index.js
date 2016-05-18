@@ -28,7 +28,7 @@ describe('trello sync', function main() {
         user: 'TEST_USER_TOKEN',
         silent: true,
         // silent: false,
-        webhook: false
+        webhook: false,
       },
     },
   };
@@ -124,7 +124,7 @@ describe('trello sync', function main() {
     if (temp) temp.destroy();
     temp = await teamline({
       database: 'teamline_test',
-      ...teamlineConfig
+      ...teamlineConfig,
     });
     db = temp.db;
     server = temp.server;
@@ -142,11 +142,11 @@ describe('trello sync', function main() {
     await models.Employee.bulkCreate([{
       username: USER.username,
       firstname: USER.fullName.split(' ')[0],
-      lastname: USER.fullName.split(' ')[1]
+      lastname: USER.fullName.split(' ')[1],
     }, {
       username: USERS[1].username,
       firstname: USERS[1].fullName.split(' ')[0],
-      lastname: USERS[1].fullName.split(' ')[1]
+      lastname: USERS[1].fullName.split(' ')[1],
     }]);
 
     await sync(server, db, config);
@@ -173,17 +173,17 @@ describe('trello sync', function main() {
         const teams = await models.Team.findAll({
           where: {
             name: {
-              $or: memberBoards.map(a => a.name)
-            }
-          }
+              $or: memberBoards.map(a => a.name),
+            },
+          },
         });
 
         await Promise.all(memberBoards.map(async board => {
           const t = await models.Trello.findOne({
             where: {
               trelloId: board.id,
-              type: 'team'
-            }
+              type: 'team',
+            },
           });
 
           expect(+t.modelId).to.be.oneOf(teams.map(a => a.id));
@@ -210,8 +210,8 @@ describe('trello sync', function main() {
 
         const team = await models.Team.findOne({
           where: {
-            name: board.name
-          }
+            name: board.name,
+          },
         });
 
         const managers = await team.getManagers();
@@ -238,8 +238,8 @@ describe('trello sync', function main() {
           const t = await models.Trello.findOne({
             where: {
               trelloId: card.id,
-              type: 'project'
-            }
+              type: 'project',
+            },
           });
 
           expect(+t.modelId).to.be.oneOf(projects.map(a => a.id));
@@ -294,8 +294,8 @@ describe('trello sync', function main() {
           const t = await models.Trello.findOne({
             where: {
               trelloId: role.id,
-              type: 'role'
-            }
+              type: 'role',
+            },
           });
 
           expect(t).to.be.ok;
@@ -312,25 +312,25 @@ describe('trello sync', function main() {
     before(async function beforeEdge() {
       // Create a Team without a Trello board, should close the team
       closedBoards.push(await models.Team.create({
-        name: 'a_team_without_board'
+        name: 'a_team_without_board',
       }));
       closedBoards.push(await models.Team.create({
-        name: 'another_team_without_a_board_with_trello_model'
+        name: 'another_team_without_a_board_with_trello_model',
       }));
       await models.Trello.create({
         modelId: closedBoards[1].id,
         trelloId: 'nonsene',
-        type: 'team'
+        type: 'team',
       });
 
       closedBoards.push(await models.Team.create({
         name: 'test_3',
-        closed: false
+        closed: false,
       }));
       await models.Trello.create({
         modelId: closedBoards[2].id,
         trelloId: BOARDS[2].id,
-        type: 'team'
+        type: 'team',
       });
 
       // update teams
@@ -361,7 +361,7 @@ describe('trello sync', function main() {
 
       // Homeless Projects
       homeless = await models.Project.create({
-        name: 'homeless_project'
+        name: 'homeless_project',
       });
 
       homeless.setTeam(await models.Team.findOne({ where: { name: BOARDS[1].name } }));
@@ -373,7 +373,7 @@ describe('trello sync', function main() {
         homelessTest.list = {
           idBoard: request.params.id,
           body: request.body,
-          id: 0
+          id: 0,
         };
 
         response.send(homelessTest.list);
@@ -384,7 +384,7 @@ describe('trello sync', function main() {
         homelessTest.card = {
           idList: request.params.id,
           body: request.body,
-          id: 0
+          id: 0,
         };
 
         response.send(homelessTest.card);
@@ -399,8 +399,8 @@ describe('trello sync', function main() {
         await Promise.all(closedBoards.map(async board => {
           const team = await models.Team.findOne({
             where: {
-              name: board.name
-            }
+              name: board.name,
+            },
           });
 
           expect(team.closed).to.equal(true);
@@ -410,8 +410,8 @@ describe('trello sync', function main() {
       it('should update team names', async () => {
         const team = await models.Team.findOne({
           where: {
-            name: BOARDS[0].name
-          }
+            name: BOARDS[0].name,
+          },
         });
 
         expect(team).to.be.ok;
@@ -423,9 +423,9 @@ describe('trello sync', function main() {
         { // CARD 0
           const project = await models.Project.findOne({
             where: {
-              name: CARDS[0].name
+              name: CARDS[0].name,
             },
-            include: [models.Team, models.Employee]
+            include: [models.Team, models.Employee],
           });
 
           expect(project).to.be.ok;
@@ -442,9 +442,9 @@ describe('trello sync', function main() {
         { // CARD 1
           const project = await models.Project.findOne({
             where: {
-              name: CARDS[1].name
+              name: CARDS[1].name,
             },
-            include: [models.Team, models.Employee]
+            include: [models.Team, models.Employee],
           });
 
           const employees = project.Employees.map(a => a.name);
@@ -470,9 +470,9 @@ describe('trello sync', function main() {
           const card = ROLE_CARDS[0];
           const role = await models.Role.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Employee, models.Team]
+            include: [models.Employee, models.Team],
           });
 
           expect(role).to.be.ok;
@@ -490,9 +490,9 @@ describe('trello sync', function main() {
           const card = ROLE_CARDS[1];
           const role = await models.Role.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           const employees = role.Employees.map(a => a.name);
@@ -510,8 +510,8 @@ describe('trello sync', function main() {
       // should destroy the `Trello` instance if the model is removed
       await models.Role.destroy({
         where: {
-          name: ROLE_CARDS[0].name
-        }
+          name: ROLE_CARDS[0].name,
+        },
       });
 
       // should close the instance if trello is closed
@@ -526,8 +526,8 @@ describe('trello sync', function main() {
     it('should destroy the `Trello` instance if model is destroyed', async () => {
       const t = await models.Trello.findOne({
         where: {
-          trelloId: ROLE_CARDS[0].name
-        }
+          trelloId: ROLE_CARDS[0].name,
+        },
       });
 
       expect(t).not.to.be.ok;
@@ -536,8 +536,8 @@ describe('trello sync', function main() {
     it('should close the model instance if trello is closed', async () => {
       const p = await models.Project.findOne({
         where: {
-          name: CARDS[0].name
-        }
+          name: CARDS[0].name,
+        },
       });
 
       expect(p).to.be.ok;
@@ -547,16 +547,16 @@ describe('trello sync', function main() {
     it('should destroy model instance and trello instance if remote is removed', async () => {
       const p = await models.Project.findOne({
         where: {
-          name: removedCard.name
-        }
+          name: removedCard.name,
+        },
       });
 
       expect(p).not.to.be.ok;
 
       const t = await models.Trello.findOne({
         where: {
-          trelloId: removedCard.name
-        }
+          trelloId: removedCard.name,
+        },
       });
 
       expect(t).not.to.be.ok;
@@ -567,11 +567,11 @@ describe('trello sync', function main() {
       CARDS.splice(1, 0, removedCard);
 
       const project = await models.Project.findOne({
-        name: removedCard.name
+        name: removedCard.name,
       });
 
       await project.update({
-        state: LISTS[1].name
+        state: LISTS[1].name,
       });
     });
   });
@@ -580,19 +580,19 @@ describe('trello sync', function main() {
     const test = {};
     before(async () => {
       const action = await models.Action.create({
-        name: 'test_action'
+        name: 'test_action',
       });
 
       const project = await models.Project.findOne({
         where: {
-          name: CARDS[0].name
-        }
+          name: CARDS[0].name,
+        },
       });
 
       const employee = await models.Employee.findOne({
         where: {
-          username: USER.username
-        }
+          username: USER.username,
+        },
       });
 
       action.setProject(project);
@@ -600,16 +600,16 @@ describe('trello sync', function main() {
 
       trello.post('/1/cards?/:id/actions?/comments?', (request, response, next) => {
         test.card = {
-          id: request.params.id
+          id: request.params.id,
         };
 
         test.action = {
           id: 0,
           data: {
-            text: request.body.text
+            text: request.body.text,
           },
           idMemberCreator: config.trello.user.id,
-          date: new Date()
+          date: new Date(),
         };
         CARDS[0].actions.push(test.action);
 
@@ -619,7 +619,7 @@ describe('trello sync', function main() {
 
       trello.delete('/1/actions?/:id', (request, response, next) => {
         test.del = {
-          id: request.params.id
+          id: request.params.id,
         };
 
         response.send(test.action);
@@ -670,7 +670,7 @@ describe('trello sync', function main() {
             name: 'hook card',
             desc: 'createCard description',
             idMembers: [],
-            closed: false
+            closed: false,
           }) - 1;
           const card = CARDS[index];
           const list = LISTS[0];
@@ -683,16 +683,16 @@ describe('trello sync', function main() {
             payload: {
               action: {
                 type: 'createCard',
-                data: { board, list, card }
-              }
-            }
+                data: { board, list, card },
+              },
+            },
           });
 
           const project = await models.Project.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Team]
+            include: [models.Team],
           });
 
           expect(project).to.be.ok;
@@ -710,7 +710,7 @@ describe('trello sync', function main() {
             id: 'test_hook_role',
             desc: 'hook role description',
             idMembers: [],
-            closed: false
+            closed: false,
           }) - 1;
 
           const card = CARDS[index];
@@ -724,16 +724,16 @@ describe('trello sync', function main() {
             payload: {
               action: {
                 type: 'createCard',
-                data: { board, list, card }
-              }
-            }
+                data: { board, list, card },
+              },
+            },
           });
 
           const role = await models.Role.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Team]
+            include: [models.Team],
           });
 
           expect(role).to.be.ok;
@@ -766,16 +766,16 @@ describe('trello sync', function main() {
                 data: {
                   board, card,
                   listBefore: list,
-                  listAfter: updatedList
-                }
-              }
-            }
+                  listAfter: updatedList,
+                },
+              },
+            },
           });
 
           const project = await models.Project.findOne({
             where: {
-              name: card.name
-            }
+              name: card.name,
+            },
           });
 
           expect(project).to.be.ok;
@@ -791,16 +791,16 @@ describe('trello sync', function main() {
               action: {
                 type: 'updateCard',
                 data: {
-                  board, card
-                }
-              }
-            }
+                  board, card,
+                },
+              },
+            },
           });
 
           const closed = await models.Project.findOne({
             where: {
-              name: card.name
-            }
+              name: card.name,
+            },
           });
 
           expect(closed).to.be.ok;
@@ -824,17 +824,17 @@ describe('trello sync', function main() {
                 data: {
                   card, board,
                   listBefore: list,
-                  listAfter: updatedList
-                }
-              }
-            }
+                  listAfter: updatedList,
+                },
+              },
+            },
           });
 
           const role = await models.Role.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Team]
+            include: [models.Team],
           });
 
           expect(role).to.be.ok;
@@ -858,16 +858,16 @@ describe('trello sync', function main() {
               action: {
                 type: 'deleteCard',
                 data: {
-                  card, list, board
-                }
-              }
-            }
+                  card, list, board,
+                },
+              },
+            },
           });
 
           const project = await models.Project.findOne({
             where: {
-              name: card.name
-            }
+              name: card.name,
+            },
           });
 
           expect(project).to.be.ok;
@@ -886,16 +886,16 @@ describe('trello sync', function main() {
               action: {
                 type: 'deleteCard',
                 data: {
-                  card, list, board
-                }
-              }
-            }
+                  card, list, board,
+                },
+              },
+            },
           });
 
           const role = await models.Role.findOne({
             where: {
-              name: card.name
-            }
+              name: card.name,
+            },
           });
 
           expect(role).to.be.ok;
@@ -917,17 +917,17 @@ describe('trello sync', function main() {
                 type: 'addMemberToCard',
                 data: {
                   card, board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const project = await models.Project.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           expect(project).to.be.ok;
@@ -947,17 +947,17 @@ describe('trello sync', function main() {
                 type: 'addMemberToCard',
                 data: {
                   card, board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const role = await models.Role.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           expect(role).to.be.ok;
@@ -979,17 +979,17 @@ describe('trello sync', function main() {
                 type: 'removeMemberFromCard',
                 data: {
                   card, board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const project = await models.Project.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           expect(project).to.be.ok;
@@ -1009,17 +1009,17 @@ describe('trello sync', function main() {
                 type: 'removeMemberFromCard',
                 data: {
                   card, board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const role = await models.Role.findOne({
             where: {
-              name: card.name
+              name: card.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           expect(role).to.be.ok;
@@ -1040,17 +1040,17 @@ describe('trello sync', function main() {
                 type: 'addMemberToBoard',
                 data: {
                   board,
-                  idMemberAdded: user.id
-                }
-              }
-            }
+                  idMemberAdded: user.id,
+                },
+              },
+            },
           });
 
           const team = await models.Team.findOne({
             where: {
-              name: board.name
+              name: board.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           expect(team).to.be.ok;
@@ -1072,17 +1072,17 @@ describe('trello sync', function main() {
                 type: 'removeMemberFromBoard',
                 data: {
                   board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const team = await models.Team.findOne({
             where: {
-              name: board.name
+              name: board.name,
             },
-            include: [models.Employee]
+            include: [models.Employee],
           });
 
           expect(team).to.be.ok;
@@ -1104,16 +1104,16 @@ describe('trello sync', function main() {
                 type: 'makeAdminOfBoard',
                 data: {
                   board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const team = await models.Team.findOne({
             where: {
-              name: board.name
-            }
+              name: board.name,
+            },
           });
 
           const managers = await team.getManagers();
@@ -1137,16 +1137,16 @@ describe('trello sync', function main() {
                 type: 'makeNormalMemberOfBoard',
                 data: {
                   board,
-                  idMember: user.id
-                }
-              }
-            }
+                  idMember: user.id,
+                },
+              },
+            },
           });
 
           const team = await models.Team.findOne({
             where: {
-              name: board.name
-            }
+              name: board.name,
+            },
           });
 
           const managers = await team.getManagers();
@@ -1167,17 +1167,17 @@ describe('trello sync', function main() {
           });
 
           const action = await models.Action.create({
-            name: 'test database hooks'
+            name: 'test database hooks',
           });
           const project = await models.Project.findOne({
             where: {
-              name: CARDS[1].name
-            }
+              name: CARDS[1].name,
+            },
           });
           const emp = await models.Employee.findOne({
             where: {
-              username: USER.username
-            }
+              username: USER.username,
+            },
           });
           action.setProject(project);
           action.setEmployee(emp);
@@ -1188,19 +1188,19 @@ describe('trello sync', function main() {
         it('should post a homeless project and assign the employee', async (done) => {
           const project = await models.Project.create({
             name: 'some new project db hook',
-            description: 'something!'
+            description: 'something!',
           });
 
           const emp = await models.Employee.findOne({
             where: {
-              username: USER.username
-            }
+              username: USER.username,
+            },
           });
 
           const team = await models.Team.findOne({
             where: {
-              name: BOARDS[0].name
-            }
+              name: BOARDS[0].name,
+            },
           });
 
           project.addEmployee(emp);

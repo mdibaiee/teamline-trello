@@ -23,8 +23,8 @@ export default async (trello, db, config) => {
   for (const card of cards) {
     const trelloInstance = await Trello.findOne({
       where: {
-        trelloId: card.id
-      }
+        trelloId: card.id,
+      },
     });
 
     if (!trelloInstance) continue;
@@ -35,15 +35,15 @@ export default async (trello, db, config) => {
     const actions = await Action.findAll({
       where: {
         date: {
-          $gte: thisMonth.toISOString()
-        }
+          $gte: thisMonth.toISOString(),
+        },
       },
       include: [{
         model,
         where: {
-          id: trelloInstance.modelId
-        }
-      }, Employee]
+          id: trelloInstance.modelId,
+        },
+      }, Employee],
     });
 
     const now = moment();

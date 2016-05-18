@@ -6,7 +6,7 @@ import hooks from './hooks';
 import _ from 'lodash';
 
 const DEFAULTS = {
-  lists: ['todo', 'doing', 'done', 'homeless']
+  lists: ['todo', 'doing', 'done', 'homeless'],
 };
 export default async (server, db, config = {}) => {
   const { error } = logger(config);
@@ -28,7 +28,7 @@ export default async (server, db, config = {}) => {
     }
 
     config.trello = Object.assign({
-      user: await get('/1/members/me')
+      user: await get('/1/members/me'),
     }, DEFAULTS);
 
     const { Company, Team, Employee, Project } = db.sequelize.models; // eslint-disable-line
