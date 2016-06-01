@@ -6,7 +6,7 @@ import hooks from './hooks';
 import _ from 'lodash';
 
 const DEFAULTS = {
-  lists: ['todo', 'doing', 'done', 'homeless'],
+  lists: ['todo', 'doing', 'done', 'homeless', 'goal'],
 };
 export default async (server, db, config = {}) => {
   const { error } = logger(config);

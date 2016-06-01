@@ -229,12 +229,14 @@ describe('trello sync', function main() {
         ).sort((a, b) => a.name.length - b.name.length);
 
         const cards = TEAM_CARDS.map(({ name, desc }) => {
+          if (name.includes('goal')) return null;
           const list = TEAM_LISTS.find(a => a.cards.some(b => b.name === name));
 
           return { name, description: desc, state: list.name };
-        }).sort((a, b) => a.name.length - b.name.length);
+        }).filter(a => a).sort((a, b) => a.name.length - b.name.length);
 
         await Promise.all(TEAM_CARDS.map(async card => {
+          if (card.name.includes('goal')) return;
           const t = await models.Trello.findOne({
             where: {
               trelloId: card.id,
@@ -300,6 +302,30 @@ describe('trello sync', function main() {
 
           expect(t).to.be.ok;
           expect(+t.modelId).to.be.oneOf(roles.map(a => a.id));
+        }));
+      });
+    });
+
+    context('goals', () => {
+      it('should create a goal for each card in goals list and assign the owner', async () => {
+        const goals = await models.Goal.findAll({ where: {} });
+
+        await Promise.all(goals.map(async goal => {
+          const card = _.find(CARDS, { name: goal.name });
+          const owner = /owner:\s*(\w+)/i.exec(card.desc)[1];
+          const emp = await models.Employee.findOne({
+            where: {
+              username: owner,
+            },
+          });
+          const Owner = await goal.getOwner();
+
+          return expect(goal.description).to.equal(card.desc) &&
+                 expect(goal.deadline.toISOString()).to.equal(card.due) &&
+                 expect(emp).to.be.ok &&
+                 expect(Owner).to.be.ok &&
+                 expect(Owner.username).to.equal(owner) &&
+                 expect(Owner.id).to.equal(emp.id);
         }));
       });
     });

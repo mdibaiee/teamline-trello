@@ -1,3 +1,5 @@
+import moment from 'moment';
+
 // FIXTURES
 export const USERS = [{
   id: 'test_id',
@@ -88,6 +90,14 @@ export const CARDS = [{
   closed: false,
   idMembers: [USERS[1].id, USER.id],
   actions: [],
+}, {
+  name: 'some goal',
+  id: 'some_goal_card',
+  desc: 'owner: test_name',
+  closed: false,
+  idMembers: [USERS[0].id],
+  actions: [],
+  due: moment().milliseconds(0).toISOString(),
 }];
 
 export const LISTS = [{
@@ -106,6 +116,12 @@ export const LISTS = [{
   name: 'done',
   id: 'test_the_other_list',
   cards: [CARDS[2]],
+  idBoard: BOARDS[1].id,
+  closed: false,
+}, {
+  name: 'goal',
+  id: 'test_goals_list',
+  cards: [CARDS[5]],
   idBoard: BOARDS[1].id,
   closed: false,
 }, {

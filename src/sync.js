@@ -6,7 +6,7 @@ export default async (trello, db, config) => {
 
   log('[sync, trello] Syncing...');
   const { sequelize } = db;
-  const { Trello, Project, Employee, Team, Role } = sequelize.models;
+  const { Trello, Project, Employee, Team, Role, Goal } = sequelize.models;
 
   const related = a => config.trello.lists.some(b => new RegExp(b, 'i').test(a.name));
 
@@ -128,7 +128,10 @@ export default async (trello, db, config) => {
       const lists = (await get(`/1/boards/${board.id}/lists?cards=all`))
                     .filter(notClosed).filter(related);
 
-      for (const list of lists) {
+      const projectLists = lists.filter(a => !/goal/i.test(a.name));
+      const goalLists = lists.filter(a => /goal/i.test(a.name));
+
+      for (const list of projectLists) {
         const match = list.name.match(/todo|doing|done/i);
         const state = match ? match[0].toLowerCase() : null;
         const cards = list.cards.filter(notClosed);
@@ -183,6 +186,75 @@ export default async (trello, db, config) => {
             if (!emp) continue;
 
             await emp.addProject(project, opts);
+          }
+        });
+      }
+
+      for (const list of goalLists) {
+        const cards = list.cards.filter(notClosed);
+
+        cards.forEach(async card => { // eslint-disable-line
+          const previousVersion = await Trello.findOne({
+            where: {
+              type: 'goal',
+              trelloId: card.id,
+            },
+          });
+
+          let goal;
+          if (!previousVersion) {
+            [goal] = await Goal.findOrCreate({
+              where: {
+                name: card.name,
+                description: card.desc,
+                deadline: card.due,
+              },
+              hooks: false,
+            });
+
+            Trello.findOrCreate({
+              where: {
+                trelloId: card.id,
+                modelId: goal.id,
+                type: 'goal',
+              },
+              hooks: false,
+            });
+          } else {
+            goal = await Goal.findOne({
+              where: {
+                id: previousVersion.modelId,
+              },
+            });
+
+            await goal.update({
+              name: card.name,
+              description: card.desc,
+              deadline: card.due,
+            }, opts);
+          }
+
+          await goal.setTeam(team, opts);
+
+          await goal.setEmployees([], opts);
+          for (const id of card.idMembers) {
+            const user = boardMembers.find(a => a.id === id);
+            const emp = user.employee;
+            if (!emp) continue;
+
+            await emp.addGoal(goal, opts);
+          }
+
+          const match = /owner:\s*(\w+)/i.exec(card.desc);
+          if (match && match[1]) {
+            const username = match[1].trim();
+            const emp = await Employee.findOne({
+              where: {
+                username,
+              },
+            });
+
+            goal.setOwner(emp);
           }
         });
       }

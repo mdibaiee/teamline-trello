@@ -8,13 +8,13 @@ export function wait(ms) {
 }
 
 export function log(...args) {
-  if (this.silent) return false;
+  if (this && this.silent) return false;
 
   console.log(...args);
 }
 
 export function error(...args) {
-  if (this.silent) return false;
+  if (this && this.silent) return false;
 
   console.error(...args);
 }
@@ -67,6 +67,6 @@ export function request(trello) {
 
 /* istanbul ignore next */
 setInterval(() => {
-  log(c, 'requests in last minute');
+  logger().log(c, 'requests in last minute');
   c = 0;
 }, 60 * 1000);
