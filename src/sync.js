@@ -245,7 +245,7 @@ export default async (trello, db, config) => {
             await emp.addGoal(goal, opts);
           }
 
-          const match = /owner:\s*(\w+)/i.exec(card.desc);
+          const match = /owner:\s*@?(\w+)/i.exec(card.desc);
           if (match && match[1]) {
             const username = match[1].trim().replace('@', '');
             const emp = await Employee.findOne({
