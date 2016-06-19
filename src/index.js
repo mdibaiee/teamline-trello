@@ -36,7 +36,7 @@ export default async (server, db, config = {}) => {
     sequelize.define('Trello', {
       trelloId: Sequelize.STRING,
       modelId: Sequelize.STRING,
-      type: Sequelize.ENUM('team', 'employee', 'project', 'role') // eslint-disable-line
+      type: Sequelize.ENUM('team', 'employee', 'project', 'role', 'goal') // eslint-disable-line
     });
 
     await db.sequelize.sync();
